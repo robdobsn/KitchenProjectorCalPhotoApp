@@ -3,7 +3,7 @@ from PyQt5.QtGui import (QColor, QFont, QBrush)
 from PyQt5.QtWidgets import (QGraphicsTextItem, QGraphicsRectItem)
 
 import urllib.request
-import pyicalendar.pyicalendar
+import ICalParser
 import threading
 import time
 from datetime import datetime
@@ -69,13 +69,16 @@ class CalendarUpdateThread(threading.Thread):
                 #try:
                 # Parse ICS file
                 icsfile=tempFname
-                mycal = pyicalendar.pyicalendar.ics()
-                mycal.local_load(icsfile)
+                cal_parser = ICalParser.ICalParser()
+                cal_parser.local_load(icsfile)
+#                mycal = pyicalendar.pyicalendar.ics()
+#                mycal.local_load(icsfile)
                 os.remove(tempFname)
                 #mycal.parse_loaded()
                 dtNow = datetime.now()
                 dtEnd = dtNow + timedelta(days=7)
-                dates = mycal.get_event_instances(dtNow.strftime("%Y%m%d"),dtEnd.strftime("%Y%m%d"))
+#                dates = mycal.get_event_instances(dtNow.strftime("%Y%m%d"),dtEnd.strftime("%Y%m%d"))
+                dates = cal_parser.get_event_instances(dtNow.strftime("%Y%m%d"),dtEnd.strftime("%Y%m%d"))
 #                print(len(dates))
 #                    for date in dates:
 #                        print(date)
