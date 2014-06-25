@@ -98,7 +98,8 @@ if __name__ == '__main__':
 
     clockHeight = windowHeight/8
     clock = AnimatedClock(scene, widthClkTextArea=740, heightClkTextArea=clockHeight, borders=[0,0,0,0], updateSecs=1)
-    
+
+    mongoClient = MongoClient(mongoDbServer)
     calMgrDb = mongoClient.CalendarManager
     calFeedsRec = calMgrDb.CalConfig.find_one()
     cal_feeds = []
