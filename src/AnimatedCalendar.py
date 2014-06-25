@@ -14,13 +14,13 @@ import os
 class CalendarUpdateThread(threading.Thread):
     theParent = None
     continueRunning = True
-    calUrls = []
+    calFeeds = []
     listUpdatePeriodSecs = 60
     
-    def __init__(self, parent, calUrls, calUpdatePeriodSecs):
+    def __init__(self, parent, calFeeds, calUpdatePeriodSecs):
         threading.Thread.__init__(self)
         self.theParent = parent
-        self.calUrls = calUrls
+        self.calFeeds = calFeeds
         self.calUpdatePeriodSecs = calUpdatePeriodSecs
         
     def stop(self):
@@ -31,10 +31,11 @@ class CalendarUpdateThread(threading.Thread):
             
 #                print ("Calupdate")
             calendars = []
-            for calUrl in self.calUrls:
+            for calFeed in self.calFeeds:
                 icsStr = ""
                 try:
                     # Read ICS feed into file
+                    calUrl = calFeed["icsUrl"]
                     print ("Requesting", calUrl)
                     icsReq = urllib.request.urlopen(calUrl)
                     icsStr = icsReq.read()
@@ -97,12 +98,12 @@ class AnimatedCalendar():
     calDataUpdated = False
     curCalendars = None
     
-    def __init__(self, scene, widthCalTextArea, heightCalTextArea, borders, calUrls, calUpdateSecs):
+    def __init__(self, scene, widthCalTextArea, heightCalTextArea, borders, calFeeds, calUpdateSecs):
         self.masterScene = scene
         self.widthCalTextArea = widthCalTextArea
         self.heightCalTextArea = heightCalTextArea
         self.borders = borders
-        self.calUrls = calUrls
+        self.calFeeds = calFeeds
         self.calendarUpdateSecs = calUpdateSecs
         # Background
         self.textBkgd = QGraphicsRectItem(0, 0, self.widthCalTextArea, self.heightCalTextArea)
@@ -124,7 +125,7 @@ class AnimatedCalendar():
     def start(self):
         self.updatesRunning = True
         QTimer.singleShot(100, self.updateCalendar)
-        self.listUpdateThread = CalendarUpdateThread(self, self.calUrls, self.calendarUpdateSecs)
+        self.listUpdateThread = CalendarUpdateThread(self, self.calFeeds, self.calendarUpdateSecs)
         self.listUpdateThread.start()
 #        print("CalStarted")
 

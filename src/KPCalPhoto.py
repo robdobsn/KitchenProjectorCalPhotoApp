@@ -7,6 +7,8 @@ from AnimatedPhotos import AnimatedPhotos
 from AnimatedClock import AnimatedClock
 from AnimatedCalendar import AnimatedCalendar
 
+from pymongo import MongoClient
+
 import tempfile
 import os
 import psutil
@@ -63,6 +65,8 @@ def setExistingInstanceToForeground(pid):
 
 if __name__ == '__main__':
 
+    mongoDbServer = "mongodb://macallan/"
+
     # Check if an instance is already running
     tempFilename = tempfile.gettempdir() + "\\rob_kpcalphoto_sentinel.txt";
     atexit.register(cleanUpOnExit)
@@ -94,9 +98,16 @@ if __name__ == '__main__':
 
     clockHeight = windowHeight/8
     clock = AnimatedClock(scene, widthClkTextArea=740, heightClkTextArea=clockHeight, borders=[0,0,0,0], updateSecs=1)
-        
-    calUrls = ["http://outlook.office365.com/owa/calendar/dc6cf02497a84574a1721061167e2e4d@robertdobson.com/1d0a0d8b7ccc454f84d8b54e96be80ce1559540694080315882/S-1-8-3229513471-1380474547-2707752778-538161306/reachcalendar.ics"]
-    calendar = AnimatedCalendar(scene, widthCalTextArea=740, heightCalTextArea=1600-clockHeight, borders=[clockHeight,0,0,0], calUrls=calUrls, calUpdateSecs=600) 
+    
+    calMgrDb = mongoClient.CalendarManager
+    calFeedsRec = calMgrDb.CalConfig.find_one()
+    cal_feeds = []
+    if calFeedsRec is None or "calFeeds" not in calFeedsRec:
+        print("Failed to find calendar config record")
+    else:
+        cal_feeds = calFeedsRec["calFeeds"]
+
+    calendar = AnimatedCalendar(scene, widthCalTextArea=740, heightCalTextArea=1600-clockHeight, borders=[clockHeight,0,0,0], calFeeds=cal_feeds, calUpdateSecs=600) 
     
     photos.start()
     clock.start()
