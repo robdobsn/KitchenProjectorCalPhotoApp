@@ -3,11 +3,6 @@ from PyQt5.QtCore import (Qt, qsrand, QTime)
 from PyQt5.QtGui import (QBrush, QColor, QPainter)
 from PyQt5.QtWidgets import (QApplication, QGraphicsScene, QGraphicsView)
 
-from AnimatedPhotos import AnimatedPhotos
-from AnimatedClock import AnimatedClock
-from AnimatedCalendar import AnimatedCalendar
-
-from pymongo import MongoClient
 
 import tempfile
 import os
@@ -15,6 +10,8 @@ import psutil
 import win32gui, win32con, win32process, win32api
 import atexit
 import sys
+
+from MainWindow import MainWindow
 
 class View(QGraphicsView):
     def resizeEvent(self, event):
@@ -29,9 +26,9 @@ def cleanUpOnExit():
             print("Failed to clean up " + tempFilename)
     
 def instanceAlreadyRunning(tempFilename):
-    print ("Checking temp file")
+    print ("Checking Sentinel file")
     if os.path.exists(tempFilename):
-        print("Temp file found")
+        print("Sentinel file found")
         with open(tempFilename, 'r') as f:
             pid = int(f.read())
             f.close()
@@ -43,12 +40,12 @@ def instanceAlreadyRunning(tempFilename):
                 try:
                     os.remove(tempFilename)
                 except:
-                    print("Failed to remove tmpfile " + tempFilename)
+                    print("Failed to remove Sentinel " + tempFilename)
                 print ("proc isn't running " + str(pid))
     with open(tempFilename, 'w') as f:
         f.write(str(os.getpid()))
         f.close()
-        print ("Temp file written")
+        print ("Sentinel file written")
     return (False, 0)
 
 def enumWinCb(hwnd, paramPID):
@@ -62,6 +59,10 @@ def enumWinCb(hwnd, paramPID):
             
 def setExistingInstanceToForeground(pid):
     win32gui.EnumWindows(enumWinCb, pid)
+
+def appExitHandler():
+    os.remove(tempFilename)
+    print ("Removed sentinel file and stopped")
 
 if __name__ == '__main__':
 
@@ -78,45 +79,37 @@ if __name__ == '__main__':
     # Init the random number generator
     qsrand(QTime(0,0,0).secsTo(QTime.currentTime()))
     
-    windowWidth = 1280
-    windowHeight = 1024
+    # windowWidth = 1280
+    # windowHeight = 1024
     
     app = QApplication(sys.argv)
+    app.aboutToQuit.connect(appExitHandler)
 
-    scene = QGraphicsScene(0,0,windowWidth,windowHeight)
+    widget = MainWindow(mongoDbServer)
+    widget.setWindowTitle("Photo Calendar")
+    widget.resize(1280, 1024)
+    widget.show()
 
-    photos = AnimatedPhotos(scene, "//macallan/photos/PhotosMain/", ["jpg"], maxCols=3, maxRows=4, borders=[0,0,0,750], xBetweenPics=5, yBetweenPics=5, animationSpeed=1.0, picChangeMs=5000)
+    # scene = QGraphicsScene(0,0,windowWidth,windowHeight)
+    #
+    # photos = AnimatedPhotos(scene, "//macallan/photos/PhotosMain/", ["jpg"], maxCols=3, maxRows=4, borders=[0,0,0,750], xBetweenPics=5, yBetweenPics=5, animationSpeed=1.0, picChangeMs=5000)
 
     # Ui.
-    view = View(scene)
-    view.setWindowTitle("Animated Tiles")
-    view.setViewportUpdateMode(QGraphicsView.BoundingRectViewportUpdate)
-    view.setBackgroundBrush(QBrush(QColor("black")))
-    view.setCacheMode(QGraphicsView.CacheBackground)
-    view.setRenderHints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform | QPainter.HighQualityAntialiasing)
+    # view = View(scene)
+    # view.setWindowTitle("Animated Tiles")
+    # view.setViewportUpdateMode(QGraphicsView.BoundingRectViewportUpdate)
+    # view.setBackgroundBrush(QBrush(QColor("black")))
+    # view.setCacheMode(QGraphicsView.CacheBackground)
+    # view.setRenderHints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform | QPainter.HighQualityAntialiasing)
     # view.showFullScreen()
 
-    clockHeight = windowHeight/8
-    clock = AnimatedClock(scene, widthClkTextArea=740, heightClkTextArea=clockHeight, borders=[0,0,0,0], updateSecs=1)
+    # clockHeight = windowHeight/8
+    # clock = AnimatedClock(scene, widthClkTextArea=740, heightClkTextArea=clockHeight, borders=[0,0,0,0], updateSecs=1)
 
-    mongoClient = MongoClient(mongoDbServer)
-    calMgrDb = mongoClient.CalendarManager
-    calFeedsRec = calMgrDb.CalConfig.find_one()
-    cal_feeds = []
-    if calFeedsRec is None or "calFeeds" not in calFeedsRec:
-        print("Failed to find calendar config record")
-    else:
-        cal_feeds = calFeedsRec["calFeeds"]
+    # photos.start()
+    # clock.start()
+    # calendar.start()
 
-    calendar = AnimatedCalendar(scene, widthCalTextArea=740, heightCalTextArea=1600-clockHeight, borders=[clockHeight,0,0,0], calFeeds=cal_feeds, calUpdateSecs=600) 
-    
-    photos.start()
-    clock.start()
-    calendar.start()
-
-    retc = app.exec_()
-    print ("Stopped")
-    photos.stop()
-    calendar.stop()
-    sys.exit(retc)
-
+    sys.exit(app.exec_())
+    # photos.stop()
+    # calendar.stop()

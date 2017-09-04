@@ -1,33 +1,51 @@
-from PyQt5.QtCore import (QTimer, QPointF)
-from PyQt5.QtGui import (QColor, QFont, QBrush)
-from PyQt5.QtWidgets import (QGraphicsTextItem, QGraphicsRectItem, QScrollArea,QTextEdit)
+from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtCore import (QTimer, QCoreApplication, Qt, qsrand, QTime, QRectF, QPointF, pyqtSignal, QSize)
+from PyQt5.QtGui import (QBrush, QColor, QPainter, QPixmap, QFont, QPalette)
+from PyQt5.QtWidgets import (QWidget, QApplication, QGraphicsScene, QGraphicsView, QPushButton, QVBoxLayout, QTextEdit, QGridLayout, QGraphicsRectItem, QGraphicsTextItem, QSizePolicy)
 
 import urllib.request
 from ics import Calendar, Event
 import threading
 import time
-from datetime import datetime
-from datetime import timedelta
 import arrow
 
+from pymongo import MongoClient
+
 class CalendarUpdateThread(threading.Thread):
-    theParent = None
-    continueRunning = True
-    calFeeds = []
-    listUpdatePeriodSecs = 60
-    
-    def __init__(self, parent, calFeeds, calUpdatePeriodSecs):
+    def __init__(self, parent, calUpdatePeriodSecs, mongoDbServer):
         threading.Thread.__init__(self)
         self.theParent = parent
-        self.calFeeds = calFeeds
         self.calUpdatePeriodSecs = calUpdatePeriodSecs
-        
+        self.mongoDbServer = mongoDbServer
+        self.calFeeds = []
+        self.continueRunning = True
+
     def stop(self):
         self.continueRunning = False
         
     def run(self):
-        while (self.continueRunning):
-            
+        # Pause a few moments - this is really just to allow the user to exit the app before
+        # the long-running process of getting the calendar starts - mainly useful when debugging
+        for sleepIdx in range(100):
+            time.sleep(0.1)
+            if not self.continueRunning:
+                return
+        # Run forever
+        while self.continueRunning:
+            # Get calfeeds
+            mongoClient = MongoClient(self.mongoDbServer)
+            calMgrDb = mongoClient.CalendarManager
+            calFeedsRec = calMgrDb.CalConfig.find_one()
+            self.calFeeds = []
+            if calFeedsRec is None or "calFeeds" not in calFeedsRec:
+                print("Failed to find calendar config record")
+            else:
+                self.calFeeds = calFeedsRec["calFeeds"]
+                print("Using calfeeds", self.calFeeds)
+            # Exit the thread if asked to stop
+            if not self.continueRunning:
+                break
+            # Retrieve calendars from the feeds
             calendars = []
             for calFeed in self.calFeeds:
                 # For each calendar
@@ -46,7 +64,7 @@ class CalendarUpdateThread(threading.Thread):
                     continue
                 # Parse ICS file
                 calendar = Calendar(str(icsStr,'utf-8'))
-                print(calendar)
+                # print(calendar)
                 # dtNow = datetime.now()
                 # dtEnd = dtNow + timedelta(days=7)
                 events = calendar.events
@@ -60,53 +78,45 @@ class CalendarUpdateThread(threading.Thread):
                 #except:
                    #print("Failed in Calendar Module")
             self.theParent.setNewCalendarEntries(calendars)
-            time.sleep(self.calUpdatePeriodSecs)
+            # Wait for a while - sleeping but also checking if we need to exit
+            for sleepIdx in range(self.calUpdatePeriodSecs * 10):
+                time.sleep(0.1)
+                if not self.continueRunning:
+                    break
+            # Exit the thread if asked to stop
+            if not self.continueRunning:
+                break
 
-class AnimatedCalendar():
-    updatesRunning = False
-    updateTimer = None
-    listUpdateThread = None
-    calDataLock = threading.Lock()
-    calDataUpdated = False
-    curCalendars = None
-    
-    def __init__(self, scene, widthCalTextArea, heightCalTextArea, borders, calFeeds, calUpdateSecs):
-        self.masterScene = scene
-        self.widthCalTextArea = widthCalTextArea
-        self.heightCalTextArea = heightCalTextArea
-        self.borders = borders
-        self.calFeeds = calFeeds
+class AnimatedCalendar(QTextEdit):
+
+    def __init__(self, calUpdateSecs, mongoDbServer, parent=None):
+        QTextEdit.__init__(self, parent)
         self.calendarUpdateSecs = calUpdateSecs
-        # Background
-        self.textBkgd = QGraphicsRectItem(0, 0, self.widthCalTextArea, self.heightCalTextArea)
-        self.textBkgd.setPos(self.borders[3], self.borders[0])
-        self.textBkgd.setBrush(QColor("light green"))
-        self.textBkgd.setZValue(10)
-        
-        scene.addItem(self.textBkgd)
-        # Text Item
-        self.textItem = QTextEdit()
-        self.textItem.setReadOnly(True)
-        self.textItem.setCurrentFont(QFont("Segoe UI", 24))
-        self.textItem.setTextColor(QColor("black"))
-        # self.textItem.setPos(QPointF(self.borders[3]+10,self.borders[0]+10))
-        self.textItem.setHtml("<B>Calendar will appear here!</B>")
-        # self.textItem.setZValue(20)
-        # self.textItem.setTextWidth(self.widthCalTextArea-20)
-        # self.textItem.setLineWrapMode(QTextEdit.FixedPixelWidth)
+        self.mongoDbServer = mongoDbServer
+        # Class vars
+        self.updatesRunning = False
+        self.updateTimer = None
+        self.listUpdateThread = None
+        self.calDataLock = threading.Lock()
+        self.calDataUpdated = False
+        self.curCalendars = None
+        # Text
+        self.setReadOnly(True)
+        self.setLineWidth(0)
+        self.setFrameShape(QtWidgets.QFrame.NoFrame)
+        self.setStyleSheet('font: 30pt "Segoe UI"; color:"red"; ')
+        self.setHtml("<B>Calendar will appear here!</B>")
+        self.start()
 
-        # # Scroll area
-        # scrollArea = QScrollArea()
-        scene.addItem(self.textItem)
-        
     def start(self):
         self.updatesRunning = True
         QTimer.singleShot(100, self.updateCalendar)
-        self.listUpdateThread = CalendarUpdateThread(self, self.calFeeds, self.calendarUpdateSecs)
+        self.listUpdateThread = CalendarUpdateThread(self, self.calendarUpdateSecs, self.mongoDbServer)
         self.listUpdateThread.start()
 #        print("CalStarted")
 
     def stop (self):
+        print("Stopping Calendar Update Thread")
         self.updatesRunning = False
         if self.updateTimer != None:
             self.updateTimer.stop()
@@ -138,17 +148,16 @@ class AnimatedCalendar():
                         if lastDay != eventDate.day:
                             if lastDay != -1:
                                 calStr += "<br/>"
-                            calStr += "<b>" + anEvent.begin.strftime("%a") + " (" + anEvent.begin.strftime("%d %B)") + ")</b><br/>"
+                            calStr += "<font color=\"DeepPink\"><b>" + anEvent.begin.strftime("%a") + " (" + anEvent.begin.strftime("%d %B") + ")</b><br/>"
                             lastDay = eventDate.day
                         strDurTime = str(duration).rpartition(":")[0]
                         durStr = (str(duration.days) + "day" + ("s" if duration.days != 1 else "")) if duration.days > 0 else strDurTime
-                        locStr = "<small>("+location+")</small>" if (location is not None and location != "") else ""
-                        calStr += anEvent.begin.strftime("%H:%M") + " <small>(" + durStr + ")</small> " + summary + " " + locStr + "<br/>"
+                        locStr = "<font color=\"Lime\"><small>("+location+")</small>" if (location is not None and location != "") else ""
+                        calStr += "<font color=\"Aqua\">" + anEvent.begin.strftime("%H:%M") + " <small>(" + durStr + ")</small> " + summary + " " + locStr + "<br/>"
 #                        print (anEvent)
     #                    print(date)
-                    self.textItem.setHtml(calStr)
-                    self.textItem.setTextWidth(self.widthCalTextArea-20)
-                    self.textItem.update()
+                    self.setHtml(calStr)
+                    self.update()
             self.calDataUpdated = False
         
         if not self.updatesRunning:

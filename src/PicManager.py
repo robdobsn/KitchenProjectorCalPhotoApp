@@ -82,6 +82,9 @@ class PicManager():
 #                    self.sourcePhotoList.append(file)
 #        print ("Photos " + str(len(self.sourcePhotoList)) + " " + (self.sourcePhotoList[0] if len(self.sourcePhotoList)>0 else ""))
 
+    def resize(self, cellSize):
+        self.cellSize = cellSize
+
     def stop(self):
         self.photoFileManager.stop()
         
