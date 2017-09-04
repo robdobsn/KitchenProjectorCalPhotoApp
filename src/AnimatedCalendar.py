@@ -1,15 +1,14 @@
 from PyQt5.QtCore import (QTimer, QPointF)
 from PyQt5.QtGui import (QColor, QFont, QBrush)
-from PyQt5.QtWidgets import (QGraphicsTextItem, QGraphicsRectItem)
+from PyQt5.QtWidgets import (QGraphicsTextItem, QGraphicsRectItem, QScrollArea,QTextEdit)
 
 import urllib.request
-import ICalParser
+from ics import Calendar, Event
 import threading
 import time
 from datetime import datetime
 from datetime import timedelta
-import tempfile
-import os
+import arrow
 
 class CalendarUpdateThread(threading.Thread):
     theParent = None
@@ -29,9 +28,9 @@ class CalendarUpdateThread(threading.Thread):
     def run(self):
         while (self.continueRunning):
             
-#                print ("Calupdate")
             calendars = []
             for calFeed in self.calFeeds:
+                # For each calendar
                 icsStr = ""
                 try:
                     # Read ICS feed into file
@@ -42,52 +41,25 @@ class CalendarUpdateThread(threading.Thread):
                     print ("Cal len = ", len(icsStr))
                 except:
                     print("Failed in URLLIB")
-
+                # Continue if empty
                 if len(icsStr) <= 0:
                     continue
-                
-                #try:
-                if True:
-                    tempFname = ""
- #                   tempFname = "C:/Users/rob/Downloads/testFile.ics"
- #                   tempFile = open(tempFname, "w")
-                    (tempFile, tempFname) =tempfile.mkstemp(prefix="robcaltmp", text=True)
-                    print(tempFname)
-                    os.write(tempFile, icsStr) #.decode("utf-8"))
-                    os.close(tempFile)
-##                except:
-##                    print("Failed in writing cal file to temp", tempFname)
-##                    if tempFname != "":
-##                        try:
-##                            os.remove(tempFname)
-##                        except:
-##                            None
-##                    tempFname = ""
-
-                if tempFname == "":
-                    continue
-                    
-                #try:
                 # Parse ICS file
-                icsfile=tempFname
-                cal_parser = ICalParser.ICalParser()
-                cal_parser.local_load(icsfile)
-#                mycal = pyicalendar.pyicalendar.ics()
-#                mycal.local_load(icsfile)
-                os.remove(tempFname)
-                #mycal.parse_loaded()
-                dtNow = datetime.now()
-                dtEnd = dtNow + timedelta(days=7)
-#                dates = mycal.get_event_instances(dtNow.strftime("%Y%m%d"),dtEnd.strftime("%Y%m%d"))
-                dates = cal_parser.get_event_instances(dtNow.strftime("%Y%m%d"),dtEnd.strftime("%Y%m%d"))
+                calendar = Calendar(str(icsStr,'utf-8'))
+                print(calendar)
+                # dtNow = datetime.now()
+                # dtEnd = dtNow + timedelta(days=7)
+                events = calendar.events
+                # dates = [ ev for ev in events if ev.begin in arrow.Arrow.range("hour", dtNow, dtEnd)]
+                # dtNow.strftime("%Y%m%d"), dtEnd.strftime("%Y%m%d")
 #                print(len(dates))
 #                    for date in dates:
 #                        print(date)
-                calendars.append(dates)
+                calendars.append(events)
 #                   print("calhere")
-                self.theParent.setNewCalendarEntries(calendars)
                 #except:
                    #print("Failed in Calendar Module")
+            self.theParent.setNewCalendarEntries(calendars)
             time.sleep(self.calUpdatePeriodSecs)
 
 class AnimatedCalendar():
@@ -113,13 +85,18 @@ class AnimatedCalendar():
         
         scene.addItem(self.textBkgd)
         # Text Item
-        self.textItem = QGraphicsTextItem()
-        self.textItem.setFont(QFont("Segoe UI", 24))
-        self.textItem.setDefaultTextColor(QColor("black"))
-        self.textItem.setPos(QPointF(self.borders[3]+10,self.borders[0]+10))
-        self.textItem.setHtml("<B>Hello</B>Hello")
-        self.textItem.setZValue(20)
-        self.textItem.setTextWidth(self.widthCalTextArea-20)
+        self.textItem = QTextEdit()
+        self.textItem.setReadOnly(True)
+        self.textItem.setCurrentFont(QFont("Segoe UI", 24))
+        self.textItem.setTextColor(QColor("black"))
+        # self.textItem.setPos(QPointF(self.borders[3]+10,self.borders[0]+10))
+        self.textItem.setHtml("<B>Calendar will appear here!</B>")
+        # self.textItem.setZValue(20)
+        # self.textItem.setTextWidth(self.widthCalTextArea-20)
+        # self.textItem.setLineWrapMode(QTextEdit.FixedPixelWidth)
+
+        # # Scroll area
+        # scrollArea = QScrollArea()
         scene.addItem(self.textItem)
         
     def start(self):
@@ -146,24 +123,27 @@ class AnimatedCalendar():
         
         with self.calDataLock:
             if self.calDataUpdated and self.curCalendars != None:
+                nowTime = arrow.now()
                 for calEvents in self.curCalendars:
                     calStr = ""
                     lastDay = -1
                     for anEvent in calEvents:
                         # date, duration, summary, location, UID
-                        eventDate = anEvent[0]
-                        duration = anEvent[1]
-                        summary = anEvent[2]
-                        location = anEvent[3]
+                        eventDate = anEvent.begin
+                        if eventDate.ceil("day") < nowTime.floor("day"):
+                            continue
+                        duration = anEvent.duration
+                        summary = anEvent.name
+                        location = anEvent.location
                         if lastDay != eventDate.day:
                             if lastDay != -1:
                                 calStr += "<br/>"
-                            calStr += "<b>" + anEvent[0].strftime("%a") + " (" + anEvent[0].strftime("%d %B)") + ")</b><br/>"
+                            calStr += "<b>" + anEvent.begin.strftime("%a") + " (" + anEvent.begin.strftime("%d %B)") + ")</b><br/>"
                             lastDay = eventDate.day
                         strDurTime = str(duration).rpartition(":")[0]
                         durStr = (str(duration.days) + "day" + ("s" if duration.days != 1 else "")) if duration.days > 0 else strDurTime
-                        locStr = "<small>("+location+")</small>" if location != "" else ""
-                        calStr += anEvent[0].strftime("%H:%M") + " <small>(" + durStr + ")</small> " + summary + " " + locStr + "<br/>"
+                        locStr = "<small>("+location+")</small>" if (location is not None and location != "") else ""
+                        calStr += anEvent.begin.strftime("%H:%M") + " <small>(" + durStr + ")</small> " + summary + " " + locStr + "<br/>"
 #                        print (anEvent)
     #                    print(date)
                     self.textItem.setHtml(calStr)

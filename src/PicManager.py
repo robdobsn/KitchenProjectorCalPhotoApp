@@ -311,7 +311,7 @@ class PicManager():
             newPixmap.pixmap_item.setPos(startCoords)
             newPixmap.pixmap_item.setVisible(True)
             # Animate in
-            anim = QPropertyAnimation(newPixmap, "pos")
+            anim = QPropertyAnimation(newPixmap, b"pos")
             anim.setDuration(self.insertDuration)
             anim.setStartValue(startCoords)
             anim.setEasingCurve(QEasingCurve.Linear)
@@ -328,7 +328,7 @@ class PicManager():
 #        print(">>MoveAnim")
         for phIdx in self.photoIdxsToMove:
             item = self.photosInGrid[phIdx]
-            anim = QPropertyAnimation(item.pixmap, "pos")
+            anim = QPropertyAnimation(item.pixmap, b"pos")
             anim.setDuration(self.moveDuration - item.gridCol * self.moveModifier)
             anim.setEasingCurve(QEasingCurve.Linear)
             startCoords = self.getCellTLCoords(item.gridRow, item.gridCol)
@@ -343,13 +343,13 @@ class PicManager():
 #        print(">>RemoveAnim")
         for phIdx in self.photoIdxsToRemove:
             item = self.photosInGrid[phIdx]
-            anim = QPropertyAnimation(item.pixmap, "scale")
+            anim = QPropertyAnimation(item.pixmap, b"scale")
             anim.setDuration(self.shrinkDuration)
             anim.setEasingCurve(QEasingCurve.Linear)
             anim.setStartValue(1.0)
             anim.setEndValue(0.0)
             animGroup.addAnimation(anim)
-            anim = QPropertyAnimation(item.pixmap, "pos")
+            anim = QPropertyAnimation(item.pixmap, b"pos")
             anim.setDuration(self.shrinkDuration)
             anim.setEasingCurve(QEasingCurve.Linear)
             startCoords = self.getCellTLCoords(item.gridRow, item.gridCol)

@@ -78,8 +78,8 @@ if __name__ == '__main__':
     # Init the random number generator
     qsrand(QTime(0,0,0).secsTo(QTime.currentTime()))
     
-    windowWidth = 2560
-    windowHeight = 1600
+    windowWidth = 1280
+    windowHeight = 1024
     
     app = QApplication(sys.argv)
 
@@ -94,7 +94,7 @@ if __name__ == '__main__':
     view.setBackgroundBrush(QBrush(QColor("black")))
     view.setCacheMode(QGraphicsView.CacheBackground)
     view.setRenderHints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform | QPainter.HighQualityAntialiasing)
-    view.showFullScreen()
+    # view.showFullScreen()
 
     clockHeight = windowHeight/8
     clock = AnimatedClock(scene, widthClkTextArea=740, heightClkTextArea=clockHeight, borders=[0,0,0,0], updateSecs=1)
