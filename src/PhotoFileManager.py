@@ -21,6 +21,7 @@ class PhotoFilelistUpdateThread(threading.Thread):
         
     def stop(self):
         self.continueRunning = False
+        print("PhotoFileManager stop requested")
         
     def run(self):
         while (self.continueRunning):
@@ -29,7 +30,7 @@ class PhotoFilelistUpdateThread(threading.Thread):
             foldersWithJpegs = []
             for root, dirs, files in os.walk(self.rootPath):
                 if not self.continueRunning:
-                    return
+                    break
                 jpegCount = len([fname for fname in files if fname[-3:].lower() in self.validFileExtList])
                 if jpegCount > 0:
                     foldersWithJpegs.append((root, jpegCount))
@@ -38,8 +39,16 @@ class PhotoFilelistUpdateThread(threading.Thread):
                     if quickInitialUpdate and totalFileCount > 1000:
                         self.theParent.setNewList(foldersWithJpegs, totalFileCount)
                         quickInitialUpdate = False
+            if not self.continueRunning:
+                break
             self.theParent.setNewList(foldersWithJpegs, totalFileCount)
-            time.sleep(self.listUpdatePeriodSecs)
+            for sleepIdx in range(int(self.listUpdatePeriodSecs)):
+                time.sleep(1)
+                if not self.continueRunning:
+                    break
+            if not self.continueRunning:
+                break
+        print("PhotoFileManager update thread stopped")
         
 class PhotoFileManager():
     totalPhotoCount = 0

@@ -5,7 +5,8 @@ from PyQt5.QtWidgets import (QWidget, QApplication, QGraphicsScene, QGraphicsVie
                              QGridLayout, QGraphicsRectItem, QGraphicsTextItem, QSizePolicy)
 from AnimatedClock import AnimatedClock
 from AnimatedCalendar import AnimatedCalendar
-from AnimatedPhotos import AnimatedPhotos
+from StaticPhotos import StaticPhotos
+from CaptionedPhotos import CaptionedPhotos
 
 class ImageWidget(QGraphicsView):
     def __init__(self, parent=None):
@@ -28,7 +29,9 @@ class MainWindow(QWidget):
         # Calendar
         self.calendar = AnimatedCalendar(calUpdateSecs=600, mongoDbServer=mongoDbServer)
         # Image
-        self.photos = AnimatedPhotos("//macallan/photos/PhotosMain/", ["jpg"], maxCols=3, maxRows=4, borders=[0,0,0,0], xBetweenPics=5, yBetweenPics=5, animationSpeed=1.0, picChangeMs=5000)
+        # self.photos = AnimatedPhotos("//macallan/photos/PhotosMain/", ["jpg"], maxCols=3, maxRows=4, borders=[0,0,0,0], xBetweenPics=5, yBetweenPics=5, animationSpeed=1.0, picChangeMs=5000)
+        # self.photos = StaticPhotos("//macallan/photos/PhotosMain/", ["jpg"], picChangeMs=5000)
+        self.photos = CaptionedPhotos("//macallan/photos/PhotosMain/", ["jpg"], picChangeMs=5000)
         # Grid layout
         layout = QGridLayout()
         # layout.setContentsMargins(0,0,0,0)
@@ -48,3 +51,8 @@ class MainWindow(QWidget):
         self.clock.stop()
         self.photos.stop()
         event.accept()
+
+    def resizeEvent(self, evt=None):
+        xWindowSize = self.width()
+        yWindowSize = self.height()
+        print("MainWindow size x,y", xWindowSize, yWindowSize);

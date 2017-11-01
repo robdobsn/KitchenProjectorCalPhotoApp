@@ -1,8 +1,7 @@
 
-from PyQt5.QtCore import (Qt, qsrand, QTime)
+from PyQt5.QtCore import (Qt, qsrand, QTime, QTimer)
 from PyQt5.QtGui import (QBrush, QColor, QPainter)
 from PyQt5.QtWidgets import (QApplication, QGraphicsScene, QGraphicsView)
-
 
 import tempfile
 import os
@@ -10,8 +9,10 @@ import psutil
 import win32gui, win32con, win32process, win32api
 import atexit
 import sys
+from datetime import datetime
 
 from MainWindow import MainWindow
+from ProjectorControl import ProjectorControl
 
 class View(QGraphicsView):
     def resizeEvent(self, event):
@@ -61,6 +62,7 @@ def setExistingInstanceToForeground(pid):
     win32gui.EnumWindows(enumWinCb, pid)
 
 def appExitHandler():
+    projectorControl.stop()
     os.remove(tempFilename)
     print ("Removed sentinel file and stopped")
 
@@ -78,12 +80,14 @@ if __name__ == '__main__':
 
     # Init the random number generator
     qsrand(QTime(0,0,0).secsTo(QTime.currentTime()))
-    
-    # windowWidth = 1280
-    # windowHeight = 1024
-    
+
+    #
+    projectorControl = ProjectorControl("PanasonicVZ570", "COM3")
+
+    # PyQt application
     app = QApplication(sys.argv)
     app.aboutToQuit.connect(appExitHandler)
+
 
     widget = MainWindow(mongoDbServer)
     widget.setWindowTitle("Photo Calendar")
@@ -110,6 +114,7 @@ if __name__ == '__main__':
     # clock.start()
     # calendar.start()
 
-    sys.exit(app.exec_())
     # photos.stop()
     # calendar.stop()
+    sys.exit(app.exec_())
+

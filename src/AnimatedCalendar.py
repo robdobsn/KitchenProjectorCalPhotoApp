@@ -26,16 +26,20 @@ class CalendarUpdateThread(threading.Thread):
     def run(self):
         # Pause a few moments - this is really just to allow the user to exit the app before
         # the long-running process of getting the calendar starts - mainly useful when debugging
-        for sleepIdx in range(100):
+        for sleepIdx in range(300):
             time.sleep(0.1)
             if not self.continueRunning:
                 return
         # Run forever
         while self.continueRunning:
             # Get calfeeds
+            print("Getting calandar config from Mongo server")
             mongoClient = MongoClient(self.mongoDbServer)
+            print("..")
             calMgrDb = mongoClient.CalendarManager
+            print("..")
             calFeedsRec = calMgrDb.CalConfig.find_one()
+            print("..")
             self.calFeeds = []
             if calFeedsRec is None or "calFeeds" not in calFeedsRec:
                 print("Failed to find calendar config record")
@@ -86,6 +90,7 @@ class CalendarUpdateThread(threading.Thread):
             # Exit the thread if asked to stop
             if not self.continueRunning:
                 break
+        print("Exiting calendar update thread")
 
 class AnimatedCalendar(QTextEdit):
 
@@ -104,8 +109,8 @@ class AnimatedCalendar(QTextEdit):
         self.setReadOnly(True)
         self.setLineWidth(0)
         self.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.setStyleSheet('font: 30pt "Segoe UI"; color:"red"; ')
-        self.setHtml("<B>Calendar will appear here!</B>")
+        self.setStyleSheet('font: 30pt "Segoe UI"; color:"white"; background-color:"black"')
+        self.setHtml("<B...</B>")
         self.start()
 
     def start(self):
@@ -148,12 +153,12 @@ class AnimatedCalendar(QTextEdit):
                         if lastDay != eventDate.day:
                             if lastDay != -1:
                                 calStr += "<br/>"
-                            calStr += "<font color=\"DeepPink\"><b>" + anEvent.begin.strftime("%a") + " (" + anEvent.begin.strftime("%d %B") + ")</b><br/>"
+                            calStr += "<font color=\"Aqua\"><b>" + anEvent.begin.strftime("%a") + " (" + anEvent.begin.strftime("%d %B") + ")</b><br/>"
                             lastDay = eventDate.day
                         strDurTime = str(duration).rpartition(":")[0]
                         durStr = (str(duration.days) + "day" + ("s" if duration.days != 1 else "")) if duration.days > 0 else strDurTime
                         locStr = "<font color=\"Lime\"><small>("+location+")</small>" if (location is not None and location != "") else ""
-                        calStr += "<font color=\"Aqua\">" + anEvent.begin.strftime("%H:%M") + " <small>(" + durStr + ")</small> " + summary + " " + locStr + "<br/>"
+                        calStr += "<font color=\"White\">" + anEvent.begin.strftime("%H:%M") + " <small>(" + durStr + ")</small> " + summary + " " + locStr + "<br/>"
 #                        print (anEvent)
     #                    print(date)
                     self.setHtml(calStr)

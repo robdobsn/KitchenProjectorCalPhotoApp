@@ -20,6 +20,9 @@ class AnimatedPhotos(QGraphicsView):
         # Border
         self.setLineWidth(0)
         self.setFrameShape(QtWidgets.QFrame.NoFrame)
+        # Size
+        sizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        self.setSizePolicy(sizePolicy)
         # Widget
         self.scene = QGraphicsScene()
         self.setScene(self.scene)
@@ -35,6 +38,9 @@ class AnimatedPhotos(QGraphicsView):
         self.picChgTimer = None
         self.stepCount = 0
 
+    def sizeHint(self):
+        return QSize(600, 400)
+
     def resizeEvent(self, evt=None):
         self.calcCellSize()
         self.picManager.resize(QSize(self.xCellSize, self.yCellSize))
@@ -44,7 +50,7 @@ class AnimatedPhotos(QGraphicsView):
         yWindowSize = self.height()
         self.xCellSize = ((xWindowSize - self.borders[3] - self.borders[1] - self.xBetweenPics*(self.maxCols-1)) / self.maxCols)
         self.yCellSize = ((yWindowSize - self.borders[0] - self.borders[2] - self.yBetweenPics*(self.maxRows-1)) / self.maxRows)
-    
+
     def start(self):
         self.animationRunning = True
         QTimer.singleShot(self.picChangeMs, self.stepAnimation)
@@ -54,7 +60,8 @@ class AnimatedPhotos(QGraphicsView):
         self.animationRunning = False
         if self.picChgTimer != None:
             self.picChgTimer.stop()
-        
+            print("Photo update timer stopped")
+
     def setNextTransition(self):
 #        print ("Anim Step ..........", self.stepCount)
         self.picManager.setupChange()
