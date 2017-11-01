@@ -11,6 +11,8 @@ class StaticPhotos(QGraphicsView):
     def __init__(self, photoBaseDir, validPhotoFileExts, picChangeMs, parent=None):
         QGraphicsView.__init__(self, parent)
         self.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff) 
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff) 
         # Vars
         self.picChangeMs = picChangeMs
         self.photoBaseDir = photoBaseDir
@@ -87,8 +89,17 @@ class StaticPhotos(QGraphicsView):
         # Add caption
         caption = QGraphicsTextItem()
         caption.setDefaultTextColor(QColor(255,255,255))
-        caption.setPos(0, self.height()-200);
+        caption.setPos(0, self.height()-50);
         caption.setTextWidth(self.width());
-        caption.setHtml('<h1 style="text-align:center;width:100%">Things are looking up</h1>');
+        # print("Tags",newImgInfo.tags)
+        tagStr = ""
+        for tag in newImgInfo.tags:
+            if tag != "Duplicate":
+                tagStr += (", " if len(tagStr) != 0 else "") + tag
+        captionStr = '<h1 style="text-align:center;width:100%">' + tagStr + '</h1>'
+        # if newImgInfo.createDate is not None:
+        #     print(newImgInfo.createDate.format())
+        #     captionStr += '<BR><h2>' + newImgInfo.createDate.format() + '</h2>'
+        caption.setHtml(captionStr)
         self.scene.addItem(caption)
         self.scene.update()

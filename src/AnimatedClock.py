@@ -51,7 +51,7 @@ class AnimatedClock(QGraphicsView):
         timeString = time.strftime("%H:%M:%S", localtime)
         self.textItem.setHtml(timeString)
         width = self.frameGeometry().width()
-        self.textItem.setFont(QFont("Segoe UI", width / 6.5))
+        self.textItem.setFont(QFont("Segoe UI", width / 8))
         self.textItem.update()
 
     def heightForWidth(self, width):

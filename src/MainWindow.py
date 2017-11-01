@@ -8,14 +8,7 @@ from AnimatedClock import AnimatedClock
 from AnimatedCalendar import AnimatedCalendar
 from StaticPhotos import StaticPhotos
 from CaptionedPhotos import CaptionedPhotos
-
-# class ImageWidget(QGraphicsView):
-#     def __init__(self, parent=None):
-#         QGraphicsView.__init__(self, parent)
-#         self.scene = QGraphicsScene()
-#         self.setScene(self.scene)
-#         self.setLineWidth(0)
-#         self.setFrameShape(QtWidgets.QFrame.NoFrame)
+from WindowToolbar import WindowToolbar
 
 class MainWindow(QWidget):
     def __init__(self, appConfig, parent=None):
@@ -36,31 +29,41 @@ class MainWindow(QWidget):
         self.photos = StaticPhotos("//macallan/photos/PhotosMain/", ["jpg"], picChangeMs=5000)
         #self.photos = CaptionedPhotos("//macallan/photos/PhotosMain/", ["jpg"], picChangeMs=5000)
 
-        self.vertSplitter = QSplitter(Qt.Vertical)
-        self.vertSplitter.addWidget(self.clock)
-        self.vertSplitter.addWidget(self.calendar)
+        # Toolbar
+        self.windowToolbar = WindowToolbar(self.close, self)
 
+        # Left pane of page
+        self.leftPane = QSplitter(Qt.Vertical)
+        self.leftPane.addWidget(self.clock)
+        self.leftPane.addWidget(self.calendar)
+        # Right pane of page
+        self.rightPane = QSplitter(Qt.Vertical)
+        self.rightPane.addWidget(self.windowToolbar)
+        self.rightPane.addWidget(self.photos)
+        # Splitter between left and right panes
         self.horzSplitter = QSplitter(Qt.Horizontal)
-        self.horzSplitter.addWidget(self.vertSplitter)
-        self.horzSplitter.addWidget(self.photos)
+        self.horzSplitter.addWidget(self.leftPane)
+        self.horzSplitter.addWidget(self.rightPane)
+        self.layout = QHBoxLayout(self)
+        self.layout.addWidget(self.horzSplitter)
+        self.setLayout(self.layout)
 
-        hbox = QHBoxLayout(self)
-        hbox.addWidget(self.horzSplitter)
-        self.setLayout(hbox)
-
+        # Remember the locations of the splitter bars to restore next time the program is run
         settings = QSettings("PhotoCalendar")
         settings.beginGroup("MainWindow")
-        size = settings.value("Size", QVariant(QSize(1920, 1200)))
-        self.resize(size)
-        # settings.setValue("Position", QVariant(QPoint(299,200)))
-        # settings.sync()
         position = settings.value("Position", QVariant(QPoint(0, 0)))
         self.move(position)
-        #        self.restoreState(settings.value("MainWindow/State").toByteArray())
+        size = settings.value("Size", QVariant(QSize(1920, 1200)))
+        self.resize(size)
         if settings.value("HorzSplitter") is not None:
             self.horzSplitter.restoreState(settings.value("HorzSplitter"))
-        if settings.value("VertSplitter") is not None:
-            self.vertSplitter.restoreState(settings.value("VertSplitter"))
+            print("Restoring horz", settings.value("HorzSplitter"))
+        if settings.value("LeftPaneSplitter") is not None:
+            self.leftPane.restoreState(settings.value("LeftPaneSplitter"))
+            print("Restoring left pane", settings.value("LeftPaneSplitter"))
+        if settings.value("RightPaneSplitter") is not None:
+            self.rightPane.restoreState(settings.value("RightPaneSplitter"))
+            print("Restoring right pane", settings.value("RightPaneSplitter"))
         settings.endGroup()
 
         # Start rotating photos
@@ -76,14 +79,35 @@ class MainWindow(QWidget):
         # layout.setColumnStretch(0, 1)
         # layout.setColumnStretch(1, 2.5)
         # self.setLayout(layout)
-        # # Start photo animation
-        # self.photos.start()
+
+        # Start photo animation
+        self.photos.start()
 
     def closeEvent(self, event):
         print("Main window close event")
+        # Save layout settings
+        settings = QSettings("PhotoCalendar")
+        settings.beginGroup("MainWindow")
+        curSize = self.size()
+        settings.setValue("Size", QVariant(curSize))
+        curPos = self.pos()
+        settings.setValue("Position", QVariant(curPos))
+        #settings.setValue("MainWindow/State", QVariant(self.saveState()))
+        horzSplitterState = self.horzSplitter.saveState()
+        print("HorzSplitter save", horzSplitterState)
+        settings.setValue("HorzSplitter", QVariant(horzSplitterState))
+        leftPaneSplitterState = self.leftPane.saveState()
+        settings.setValue("LeftPaneSplitter", QVariant(leftPaneSplitterState))
+        print("LeftPaneSplitter save", leftPaneSplitterState)
+        rightPaneSplitterState = self.rightPane.saveState()
+        settings.setValue("RightPaneSplitter", QVariant(rightPaneSplitterState))
+        print("RightPaneSplitter save", leftPaneSplitterState)
+        settings.endGroup()
+        # Stop the sub-elements
         self.calendar.stop()
         self.clock.stop()
         self.photos.stop()
+        # Accept the close event
         event.accept()
 
     def resizeEvent(self, evt=None):

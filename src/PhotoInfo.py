@@ -2,16 +2,16 @@ from PIL import (Image, ExifTags)
 from PyQt5.QtCore import (QSize)
 import re
 from bitstring import ConstBitStream
+import untangle
+import datetime
+import arrow
 
 class PhotoInfo():
-    imgSize = QSize()
+    imgSize = None
     rotationAngle = 0
-    rating = -1
-
-    def __init__(self):
-        self.imgSize = QSize()
-        self.rotationAngle = 0
-        self.rating = -1    
+    rating = None
+    rawFileName = None
+    tags = []
 
     def printEXIFinfo(self, imgFileName):
             img = Image.open(imgFileName)
@@ -20,6 +20,8 @@ class PhotoInfo():
                 print (ExifTags.TAGS[k],"(",k,")",v)
         
     def setFromFile(self, imgFileName):
+        createDate = None
+        tags = []
         # Get the EXIF data (contains orientation)
         try:
             img = Image.open(imgFileName)
@@ -41,7 +43,7 @@ class PhotoInfo():
             
         # Get the XMP data (contains rating)
         xmpStr = self.extractXMP(imgFileName)
-        rating = -1
+        rating = None
         try:
             if len(xmpStr) != 0:
                 m = re.search('\<xmp:Rating\>\w*?(\d)', xmpStr)
@@ -51,9 +53,51 @@ class PhotoInfo():
         except:
             rating = -1
 
+        # Raw file name
+        rawFileName = None
+        try:
+            if len(xmpStr) != 0:
+                m = re.search('\<crs:RawFileName\>\w*?(\d)', xmpStr)
+                if m != None:
+                    if len(m.groups()) == 1:
+                        rawFileName = m.group(1)
+        except:
+            rawFileName = None
+
+        # # Read XMP data as XML
+        # xmpDescr = None
+        # try:
+        #     if len(xmpStr) != 0:
+        #         xmpObj = untangle.parse(xmpStr)
+        #         xmpDescr = xmpObj.x_xmpmeta.rdf_RDF.rdf_Description
+        # except:
+        #     xmpDescr = None
+        #
+        # # Create date, etc
+        #
+        # tags = []
+        # if xmpDescr is not None:
+        #     try:
+        #         createDateStr = xmpDescr["xmp:CreateDate"]
+        #         print(createDateStr)
+        #         createDate = arrow.get(createDateStr)
+        #     except:
+        #         createDate = None
+        #     try:
+        #         if hasattr(xmpDescr, "lr_hierarchicalSubject"):
+        #             for listElem in xmpDescr.lr_hierarchicalSubject.rdf_Bag.rdf_li:
+        #                 tags.append(listElem.cdata)
+        #     except:
+        #         tags = []
+
+        # Set the values
         self.imgSize = QSize(width, height)
         self.rotationAngle = rotationAngle
         self.rating = rating
+        self.rawFileName = rawFileName
+        self.tags = tags
+        self.createDate = createDate
+
 #        print(imgFileName, "Size", width, height, "Rot", rotationAngle, "Rating", rating)
 
     def extractXMP(self, filename):

@@ -2,10 +2,11 @@ import serial
 import sys
 from PyQt5.QtCore import (Qt, QTime, QTimer)
 import datetime
+import threading
 
 class ProjectorControl:
     _projectorIsOn = True
-    _eventTimes = [ ("14:12","on"), ("09:00", "off") ]
+    _eventTimes = [ ("07:00","on"), ("09:00", "off") ]
     _nextEvent = None
 
     def __init__(self, projectorModel, comPort):
@@ -14,11 +15,13 @@ class ProjectorControl:
         # Next event time
         self.prepareNextEventTime()
         # Wakeup / turn off timer
-        self._projectorPowerTimer = QTimer()
-        self._projectorPowerTimer.setInterval(1 * 1000)
-        self._projectorPowerTimer.setSingleShot(False)
-        self._projectorPowerTimer.timeout.connect(self.handleTickProjectorPower)
+#        self._projectorPowerTimer = QTimer()
+#        self._projectorPowerTimer.setSingleShot(False)
+#        self._projectorPowerTimer.timeout.connect(self.handleTickProjectorPower)
+#        self._projectorPowerTimer.start(10 * 1000)
+        self._projectorPowerTimer = threading.Timer(10.0, self.handleTick)
         self._projectorPowerTimer.start()
+        print("ProjectorControl: construct")
 
     def stop(self):
         self._projectorPowerTimer.stop()
@@ -26,19 +29,20 @@ class ProjectorControl:
 
     def prepareNextEventTime(self):
         curTime = datetime.datetime.now()
-        _nextEvent = None
+        self._nextEvent = None
         for event in self._eventTimes:
             evTime = datetime.datetime.strptime(event[0], "%H:%M")
             if evTime.hour < curTime.hour or (evTime.hour == curTime.hour and evTime.minute <= curTime.minute):
                 continue
-            _nextEvent = event
+            self._nextEvent = event
             break
-        if _nextEvent is None:
-            _nextEvent = self._eventTimes[0]
-        print("Next event at " + _nextEvent[0] + " projector " +  _nextEvent[1])
+        if self._nextEvent is None:
+            self._nextEvent = self._eventTimes[0]
+        print("Next event at " + self._nextEvent[0] + " projector " +  self._nextEvent[1])
 
-    def handleTickProjectorPower(self):
-        # Check timer
+    def handleTick(self):
+        # Check for time of next event
+        print("Projector tick")
         curTime = datetime.datetime.now()
         nextEventTime = datetime.datetime.strptime(self._nextEvent[0], "%H:%M")
         print("Comparing ", nextEventTime.hour, nextEventTime.minute, "to", curTime.hour, curTime.minute)
@@ -46,6 +50,8 @@ class ProjectorControl:
             turnOn = (self._nextEvent[1] == "on")
             self.switchPower(turnOn)
             self.prepareNextEventTime()
+        self._projectorPowerTimer = threading.Timer(10.0, self.handleTick)
+        self._projectorPowerTimer.start()
 
     def switchPower(self, turnOn):
         if self._projectorModel is "PanasonicVZ570":

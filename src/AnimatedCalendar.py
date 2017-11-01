@@ -134,7 +134,7 @@ class AnimatedCalendar(QTextEdit):
             self.calDataUpdated = True
         
     def updateCalendar(self):
-        print("AnimatedCalendar: updateCalendar")
+        # print("AnimatedCalendar: updateCalendar")
         with self.calDataLock:
             if self.calDataUpdated and self.curCalendars != None:
                 nowTime = arrow.now()
@@ -167,7 +167,7 @@ class AnimatedCalendar(QTextEdit):
         if not self.updatesRunning:
             return 
         self.updateTimer = QTimer()
-        self.updateTimer.setInterval(5000)
+        self.updateTimer.setInterval(15000)
         self.updateTimer.setSingleShot(True)
         self.updateTimer.timeout.connect(self.updateCalendar)
         self.updateTimer.start()

@@ -53,7 +53,7 @@ if __name__ == '__main__':
     projectorControl = ProjectorControl("PanasonicVZ570", "COM3")
 
     # Register an exit handler
-    atexit.register(appExitHandler)
+    # atexit.register(appExitHandler)
 
     # PyQt application
     app = setupApplication()
