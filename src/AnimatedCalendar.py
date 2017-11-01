@@ -118,10 +118,10 @@ class AnimatedCalendar(QTextEdit):
         QTimer.singleShot(100, self.updateCalendar)
         self.listUpdateThread = CalendarUpdateThread(self, self.calendarUpdateSecs, self.mongoDbServer)
         self.listUpdateThread.start()
-#        print("CalStarted")
+        print("AnimatedCalendar: started")
 
     def stop (self):
-        print("Stopping Calendar Update Thread")
+        print("AnimatedCalendar: Stopping Calendar Update Thread")
         self.updatesRunning = False
         if self.updateTimer != None:
             self.updateTimer.stop()
@@ -134,8 +134,7 @@ class AnimatedCalendar(QTextEdit):
             self.calDataUpdated = True
         
     def updateCalendar(self):
-#        print("Update cal")
-        
+        print("AnimatedCalendar: updateCalendar")
         with self.calDataLock:
             if self.calDataUpdated and self.curCalendars != None:
                 nowTime = arrow.now()

@@ -27,9 +27,10 @@ class AnimatedClock(QGraphicsView):
         self.textItem.color = QColor(QColor("black"))
         self.textItem.setFont(QFont("Segoe UI", 80))
         self.textItem.setDefaultTextColor(QColor("white"))
-        self.textItem.setHtml("<B>Clock</B>")
+        self.textItem.setHtml("")
         self.textItem.setZValue(20)
         self.scene.addItem(self.textItem)
+        # Start ticking
         self.start()
 
     def sizeHint(self):
@@ -37,7 +38,7 @@ class AnimatedClock(QGraphicsView):
 
     def start(self):
         self.updateTimer = QTimer()
-        self.updateTimer.setInterval(self.updateSecs * 1000)
+        self.updateTimer.setInterval(self.updateSecs * 990)
         self.updateTimer.timeout.connect(self.updateClock)
         self.updateTimer.start()
 
@@ -47,11 +48,10 @@ class AnimatedClock(QGraphicsView):
 
     def updateClock(self):
         localtime = time.localtime()
-        #        dateString  = time.strftime("%a %d %b %Y", localtime)
         timeString = time.strftime("%H:%M:%S", localtime)
         self.textItem.setHtml(timeString)
         width = self.frameGeometry().width()
-        self.textItem.setFont(QFont("Segoe UI", width / 8))
+        self.textItem.setFont(QFont("Segoe UI", width / 6.5))
         self.textItem.update()
 
     def heightForWidth(self, width):
