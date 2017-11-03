@@ -6,7 +6,7 @@ import threading
 
 class ProjectorControl:
     _projectorIsOn = True
-    _eventTimes = [ ("07:00","on"), ("09:00", "off") ]
+    _eventTimes = [ ("07:00","on"), ("19:00", "dummy") ]
     _nextEvent = None
 
     def __init__(self, projectorModel, comPort):
@@ -45,10 +45,10 @@ class ProjectorControl:
         print("Projector tick")
         curTime = datetime.datetime.now()
         nextEventTime = datetime.datetime.strptime(self._nextEvent[0], "%H:%M")
-        print("Comparing ", nextEventTime.hour, nextEventTime.minute, "to", curTime.hour, curTime.minute)
+        nextEventAction = self._nextEvent[1]
         if curTime.hour == nextEventTime.hour and curTime.minute == nextEventTime.minute:
-            turnOn = (self._nextEvent[1] == "on")
-            self.switchPower(turnOn)
+            if nextEventAction == "on" or nextEventAction == "off":
+                self.switchPower(nextEventAction == "on")
             self.prepareNextEventTime()
         self._projectorPowerTimer = threading.Timer(10.0, self.handleTick)
         self._projectorPowerTimer.start()
