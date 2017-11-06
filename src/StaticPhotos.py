@@ -42,11 +42,12 @@ class StaticPhotos(QGraphicsView):
         self.picChgTimer.timeout.connect(self.picChangeFn)
         self.picChgTimer.start()
         # self.picChangeFn()
+        print("Static Photos - starting")
 
     def stop(self):
         if self.picChgTimer is not None:
             self.picChgTimer.stop()
-            print("Stopping photo update timer")
+            print("Static Photos - stopping")
             # self.picChgTimer.disconnect(self.picChangeFn)
         self.photoFileManager.stop()
 

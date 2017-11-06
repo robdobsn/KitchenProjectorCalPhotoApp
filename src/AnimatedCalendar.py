@@ -26,14 +26,14 @@ class CalendarUpdateThread(threading.Thread):
     def run(self):
         # Pause a few moments - this is really just to allow the user to exit the app before
         # the long-running process of getting the calendar starts - mainly useful when debugging
-        for sleepIdx in range(300):
-            time.sleep(0.1)
+        for sleepIdx in range(30):
+            time.sleep(1.0)
             if not self.continueRunning:
-                return
+                break
         # Run forever
         while self.continueRunning:
             # Get calfeeds
-            print("Getting calandar config from Mongo server")
+            print("AnimatedCalendar - Getting config from Mongo server")
             mongoClient = MongoClient(self.mongoDbServer)
             print("..")
             calMgrDb = mongoClient.CalendarManager
@@ -42,10 +42,10 @@ class CalendarUpdateThread(threading.Thread):
             print("..")
             self.calFeeds = []
             if calFeedsRec is None or "calFeeds" not in calFeedsRec:
-                print("Failed to find calendar config record")
+                print("AnimatedCalendar - failed to find calendar config record")
             else:
                 self.calFeeds = calFeedsRec["calFeeds"]
-                print("Using calfeeds", self.calFeeds)
+                # print("AnimatedCalendar - using calfeeds", self.calFeeds)
             # Exit the thread if asked to stop
             if not self.continueRunning:
                 break
@@ -57,10 +57,10 @@ class CalendarUpdateThread(threading.Thread):
                 try:
                     # Read ICS feed into file
                     calUrl = calFeed["icsUrl"]
-                    print ("Requesting", calUrl)
+                    #print ("AnimatedCalendar - Requesting", calUrl)
                     icsReq = urllib.request.urlopen(calUrl)
                     icsStr = icsReq.read()
-                    print ("Cal len = ", len(icsStr))
+                    print ("AnimatedCalendar - cal len = ", len(icsStr))
                 except:
                     print("Failed in URLLIB")
                 # Continue if empty
@@ -90,7 +90,7 @@ class CalendarUpdateThread(threading.Thread):
             # Exit the thread if asked to stop
             if not self.continueRunning:
                 break
-        print("Exiting calendar update thread")
+        print("AnimatedCalendar - stopped update thread")
 
 class AnimatedCalendar(QTextEdit):
 
@@ -109,7 +109,7 @@ class AnimatedCalendar(QTextEdit):
         self.setReadOnly(True)
         self.setLineWidth(0)
         self.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.setStyleSheet('font: 30pt "Segoe UI"; color:"white"; background-color:"black"')
+        self.setStyleSheet('font: 25pt "Segoe UI"; color:"white"; background-color:"black"')
         self.setHtml("<B...</B>")
         self.start()
 
@@ -118,10 +118,10 @@ class AnimatedCalendar(QTextEdit):
         QTimer.singleShot(100, self.updateCalendar)
         self.listUpdateThread = CalendarUpdateThread(self, self.calendarUpdateSecs, self.mongoDbServer)
         self.listUpdateThread.start()
-        print("AnimatedCalendar: started")
+        print("AnimatedCalendar - started")
 
     def stop (self):
-        print("AnimatedCalendar: Stopping Calendar Update Thread")
+        print("AnimatedCalendar - stop requested")
         self.updatesRunning = False
         if self.updateTimer != None:
             self.updateTimer.stop()
@@ -152,12 +152,12 @@ class AnimatedCalendar(QTextEdit):
                         if lastDay != eventDate.day:
                             if lastDay != -1:
                                 calStr += "<br/>"
-                            calStr += "<font color=\"Aqua\"><b>" + anEvent.begin.strftime("%a") + " (" + anEvent.begin.strftime("%d %B") + ")</b><br/>"
+                            calStr += "<font color=\"Aqua\"><b>" + anEvent.begin.strftime("%a") + " (" + anEvent.begin.strftime("%d %b") + ")</b><br/>"
                             lastDay = eventDate.day
                         strDurTime = str(duration).rpartition(":")[0]
                         durStr = (str(duration.days) + "day" + ("s" if duration.days != 1 else "")) if duration.days > 0 else strDurTime
-                        locStr = "<font color=\"Lime\"><small>("+location+")</small>" if (location is not None and location != "") else ""
-                        calStr += "<font color=\"White\">" + anEvent.begin.strftime("%H:%M") + " <small>(" + durStr + ")</small> " + summary + " " + locStr + "<br/>"
+                        locStr = "<font color=\"White\"><i><small>("+location+")</small></i>" if (location is not None and location != "") else ""
+                        calStr += "<font color=\"Lime\">" + anEvent.begin.strftime("%H:%M") + "</font><font color=\"White\"> <small>(" + durStr + ")</small> " + summary + " " + locStr + "<br/>"
 #                        print (anEvent)
     #                    print(date)
                     self.setHtml(calStr)

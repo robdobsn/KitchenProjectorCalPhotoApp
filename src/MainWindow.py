@@ -11,10 +11,11 @@ from CaptionedPhotos import CaptionedPhotos
 from WindowToolbar import WindowToolbar
 
 class MainWindow(QWidget):
-    def __init__(self, appConfig, parent=None):
+    def __init__(self, appConfig, projectorControl, parent=None):
         QWidget.__init__(self, parent)
+        self._projectorControl = projectorControl
         # Frameless window
-        # self.setWindowFlags(Qt.FramelessWindowHint)
+        self.setWindowFlags(Qt.FramelessWindowHint)
         # Background to black
         self.setAutoFillBackground(True)
         palette = QPalette()
@@ -57,13 +58,13 @@ class MainWindow(QWidget):
         self.resize(size)
         if settings.value("HorzSplitter") is not None:
             self.horzSplitter.restoreState(settings.value("HorzSplitter"))
-            print("Restoring horz", settings.value("HorzSplitter"))
+            #print("Restoring horz", settings.value("HorzSplitter"))
         if settings.value("LeftPaneSplitter") is not None:
             self.leftPane.restoreState(settings.value("LeftPaneSplitter"))
-            print("Restoring left pane", settings.value("LeftPaneSplitter"))
+            #print("Restoring left pane", settings.value("LeftPaneSplitter"))
         if settings.value("RightPaneSplitter") is not None:
             self.rightPane.restoreState(settings.value("RightPaneSplitter"))
-            print("Restoring right pane", settings.value("RightPaneSplitter"))
+            #print("Restoring right pane", settings.value("RightPaneSplitter"))
         settings.endGroup()
 
         # Start rotating photos
@@ -94,14 +95,14 @@ class MainWindow(QWidget):
         settings.setValue("Position", QVariant(curPos))
         #settings.setValue("MainWindow/State", QVariant(self.saveState()))
         horzSplitterState = self.horzSplitter.saveState()
-        print("HorzSplitter save", horzSplitterState)
+        #print("HorzSplitter save", horzSplitterState)
         settings.setValue("HorzSplitter", QVariant(horzSplitterState))
         leftPaneSplitterState = self.leftPane.saveState()
         settings.setValue("LeftPaneSplitter", QVariant(leftPaneSplitterState))
-        print("LeftPaneSplitter save", leftPaneSplitterState)
+        #print("LeftPaneSplitter save", leftPaneSplitterState)
         rightPaneSplitterState = self.rightPane.saveState()
         settings.setValue("RightPaneSplitter", QVariant(rightPaneSplitterState))
-        print("RightPaneSplitter save", leftPaneSplitterState)
+        #print("RightPaneSplitter save", leftPaneSplitterState)
         settings.endGroup()
         # Stop the sub-elements
         self.calendar.stop()
@@ -114,3 +115,6 @@ class MainWindow(QWidget):
         xWindowSize = self.width()
         yWindowSize = self.height()
         print("MainWindow size x,y", xWindowSize, yWindowSize);
+
+    def test(self):
+        self._projectorControl.test()

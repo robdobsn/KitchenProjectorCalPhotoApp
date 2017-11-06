@@ -64,6 +64,7 @@ class WindowToolbar(QWidget):
 
     def exitHandler(self):
         self._closeWindowCallback()
+        #self._parent.test()
 
     def minMaxHandler(self):
         if QApplication.topLevelWidgets()[0].isMaximized():

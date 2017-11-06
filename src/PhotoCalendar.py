@@ -7,6 +7,7 @@ from PyQt5.QtGui import (QColor, QPalette)
 
 import sys
 import atexit
+import time
 
 from MainWindow import MainWindow
 from ProjectorControl import ProjectorControl
@@ -14,7 +15,7 @@ from ProgramInstanceHandler import ProgramInstanceHandler
 
 def setupApplication():
     app = QApplication(sys.argv)
-    app.aboutToQuit.connect(appExitHandler)
+    #app.aboutToQuit.connect(appExitHandler)
     darkPalette = QPalette()
     darkPalette.setColor(QPalette.Window, QColor(0, 0, 0))
     darkPalette.setColor(QPalette.WindowText, Qt.white)
@@ -35,7 +36,9 @@ def setupApplication():
 
 def appExitHandler():
     projectorControl.stop()
+    time.sleep(2.0)
     programInstanceHandler.stop()
+    print("App exit done")
 
 if __name__ == '__main__':
 
@@ -53,16 +56,19 @@ if __name__ == '__main__':
     projectorControl = ProjectorControl("PanasonicVZ570", "COM3")
 
     # Register an exit handler
-    # atexit.register(appExitHandler)
+    #atexit.register(appExitHandler)
 
     # PyQt application
     app = setupApplication()
 
     # Main window
-    mainWindow = MainWindow(appConfig)
+    mainWindow = MainWindow(appConfig, projectorControl)
     mainWindow.setWindowTitle("Photo Calendar")
     mainWindow.resize(1280, 1024)
     mainWindow.show()
 
     # Start the app
-    sys.exit(app.exec_())
+    exitCode = app.exec_()
+    appExitHandler()
+    sys.exit(exitCode)
+    

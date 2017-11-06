@@ -41,10 +41,12 @@ class AnimatedClock(QGraphicsView):
         self.updateTimer.setInterval(self.updateSecs * 990)
         self.updateTimer.timeout.connect(self.updateClock)
         self.updateTimer.start()
+        print("Animated clock - starting")
 
     def stop(self):
         if self.updateTimer != None:
             self.updateTimer.stop()
+        print("Animated clock - stopping")
 
     def updateClock(self):
         localtime = time.localtime()
