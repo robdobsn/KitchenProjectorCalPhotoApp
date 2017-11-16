@@ -23,6 +23,9 @@ class AnimatedPhotos(QGraphicsView):
         # Size
         sizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         self.setSizePolicy(sizePolicy)
+        # Appearance
+        self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         # Widget
         self.scene = QGraphicsScene()
         self.setScene(self.scene)

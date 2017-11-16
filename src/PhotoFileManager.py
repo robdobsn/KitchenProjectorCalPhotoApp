@@ -24,8 +24,10 @@ class PhotoFilelistUpdateThread(threading.Thread):
         print("PhotoFileManager stop requested")
         
     def run(self):
+        REPORT_AFTER_N_FOUND = 10000
         while (self.continueRunning):
             quickInitialUpdate = True
+            lastFileCount = 0
             totalFileCount = 0
             foldersWithJpegs = []
             for root, dirs, files in os.walk(self.rootPath):
@@ -39,6 +41,9 @@ class PhotoFilelistUpdateThread(threading.Thread):
                     if quickInitialUpdate and totalFileCount > 1000:
                         self.theParent.setNewList(foldersWithJpegs, totalFileCount)
                         quickInitialUpdate = False
+                if totalFileCount > lastFileCount + REPORT_AFTER_N_FOUND:
+                    print("PhotoFileManager: Found", totalFileCount, "photos")
+                    lastFileCount = totalFileCount
             if not self.continueRunning:
                 break
             self.theParent.setNewList(foldersWithJpegs, totalFileCount)

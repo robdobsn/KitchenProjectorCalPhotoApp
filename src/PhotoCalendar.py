@@ -43,7 +43,7 @@ def appExitHandler():
 if __name__ == '__main__':
 
     # App configuration
-    appConfig = {"calendarConfigSource": "mongodb://macallan/"}
+    appConfig = {"calServerUrl": "http://domoticzoff:5077/calendar/full/60"}
 
     # Program instance handler
     programInstanceHandler = ProgramInstanceHandler()

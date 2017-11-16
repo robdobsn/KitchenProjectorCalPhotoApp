@@ -1,9 +1,10 @@
 import serial
 import sys
-from PyQt5.QtCore import (Qt, QTime, QTimer)
+import time
 import datetime
 import threading
 import win32api
+import win32con
 
 class ProjectorControl:
     _projectorIsOn = True
@@ -20,10 +21,10 @@ class ProjectorControl:
         self._comPort = comPort
         # Next event time
         self.prepareNextEventTime()
-        # Wakeup / turn off timer
-        self._projectorPowerTimer = threading.Timer(10.0, self.handleTick)
-        self._projectorPowerTimer.start()
-        print("ProjectorControl - started")
+        # Wakeup / turn off timing
+        self._projectorPowerTiming = threading.Thread(target=self.powerTimingHandler)
+        self._projectorPowerTiming.start()
+        # Serial connection
         try:
             self._serialConnection = serial.Serial(self._comPort)
             if self._serialConnection is not None:
@@ -39,10 +40,9 @@ class ProjectorControl:
                 self._serialConnection.close()
             self._serialConnection = None
             self._serialRxThread = None
-        self._stopRequested = False
+        print("ProjectorControl - started")
 
     def stop(self):
-        self._projectorPowerTimer.cancel()
         self._stopRequested = True
         print("ProjectorControl - stop requested")
 
@@ -57,6 +57,7 @@ class ProjectorControl:
                     print("{:02X} ".format(newCh), end="")
                     if newCh == 0x03:
                         print()
+            time.sleep(100)
         try:
             serialConn.close()
             print("ProjectorControl - Closed serial connection")
@@ -77,28 +78,34 @@ class ProjectorControl:
             self._nextEvent = self._eventTimes[0]
         print("ProjectorControl - Next event at " + self._nextEvent[0] + " projector " +  self._nextEvent[1])
 
-    def handleTick(self):
-        # Check for next event time
-        curTime = datetime.datetime.now()
-        nextEventTime = datetime.datetime.strptime(self._nextEvent[0], "%H:%M")
-        nextEventAction = self._nextEvent[1]
-        if curTime.hour == nextEventTime.hour and curTime.minute == nextEventTime.minute:
-            if nextEventAction == "on":
-                self.switchPower(True)
-            elif nextEventAction == "off":
-                self._turnOffPendingInactivity = True
-                print("ProjectorControl - turn off when inactive")
-            self.prepareNextEventTime()
-        # Check for turn-off based on inactivity
-        if self._turnOffPendingInactivity:
-            inactiveSecs = self.getInactiveForSecs()
-            if inactiveSecs > self.MIN_INACTIVE_SECS:
-                self.switchPower(False)
-                self._turnOffPendingInactivity = False
-                print("ProjectorControl - inactive for", inactiveSecs, "turning off")
-        # Restart timer
-        self._projectorPowerTimer = threading.Timer(10.0, self.handleTick)
-        self._projectorPowerTimer.start()
+    def powerTimingHandler(self):
+        while True:
+            if self._stopRequested:
+                break
+            # Check for next event time
+            curTime = datetime.datetime.now()
+            print("Checking time at", curTime)
+            nextEventTime = datetime.datetime.strptime(self._nextEvent[0], "%H:%M")
+            nextEventAction = self._nextEvent[1]
+            if curTime.hour == nextEventTime.hour and curTime.minute == nextEventTime.minute:
+                if nextEventAction == "on":
+                    print("Turning projector on")
+                    self.switchPower(True)
+                elif nextEventAction == "off":
+                    self._turnOffPendingInactivity = True
+                    print("ProjectorControl - turn off when inactive")
+                self.prepareNextEventTime()
+            # Check for turn-off based on inactivity
+            if self._turnOffPendingInactivity:
+                inactiveSecs = self.getInactiveForSecs()
+                print("Wait for inactive", inactiveSecs)
+                if inactiveSecs > self.MIN_INACTIVE_SECS:
+                    self.switchPower(False)
+                    self._turnOffPendingInactivity = False
+                    print("ProjectorControl - inactive for", inactiveSecs, "turning off")
+            # Wait a bit
+            time.sleep(30.0)
+        print("PowerControl: powerTimingThread exiting")
 
     def switchPower(self, turnOn):
         if self._projectorModel is "PanasonicVZ570":
@@ -112,25 +119,9 @@ class ProjectorControl:
                 self._serialConnection.write(b'\2POF\3')
 
     def monitorOn(self):
-        if sys.platform.startswith('linux'):
-            import os
-            os.system("xset dpms force off")
-
-        elif sys.platform.startswith('win'):
-            import win32gui
-            import win32con
-            from os import getpid, system
-            from threading import Timer
-
-            def force_exit():
-                pid = getpid()
-                system('taskkill /pid %s /f' % pid)
-
-            t = Timer(1, force_exit)
-            t.start()
-            SC_MONITORPOWER = 0xF170
-            win32gui.SendMessage(win32con.HWND_BROADCAST, win32con.WM_SYSCOMMAND, SC_MONITORPOWER, 2)
-            t.cancel()
+        win32api.mouse_event(win32con.MOUSEEVENTF_MOVE, 0, 10, 0)
+        time.sleep(0.05)
+        win32api.mouse_event(win32con.MOUSEEVENTF_MOVE, 0, -10, 0)    
 
     def test(self):
         if self._projectorModel is "PanasonicVZ570":

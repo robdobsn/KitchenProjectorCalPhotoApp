@@ -24,7 +24,7 @@ class MainWindow(QWidget):
         # Clock
         self.clock = AnimatedClock()
         # Calendar
-        self.calendar = AnimatedCalendar(calUpdateSecs=600, mongoDbServer=appConfig["calendarConfigSource"])
+        self.calendar = AnimatedCalendar(calUpdateSecs=600, calServerUrl=appConfig["calServerUrl"])
         # Image
         # self.photos = AnimatedPhotos("//macallan/photos/PhotosMain/", ["jpg"], maxCols=3, maxRows=4, borders=[0,0,0,0], xBetweenPics=5, yBetweenPics=5, animationSpeed=1.0, picChangeMs=5000)
         self.photos = StaticPhotos("//macallan/photos/PhotosMain/", ["jpg"], picChangeMs=5000)
@@ -118,3 +118,7 @@ class MainWindow(QWidget):
 
     def test(self):
         self._projectorControl.test()
+
+    def keyPressEvent(self, event): #QKeyEvent
+        print("keypress", event.text())
+
