@@ -118,7 +118,11 @@ class PhotoFileManager():
                 for photoFolder in self.photoFolderList:
                     if photoIdx < photoCtr + photoFolder[1]:
     #                    print (photoIdx, photoCtr, photoFolder[1])
+                        try:
                         fileList = os.listdir(photoFolder[0])
+                        except:
+                            print("Failed to access folder " + photoFolder[0])
+                            break
                         for fname in fileList:
                             if fname[-3:].lower() in self.validFileExtList:
                                 if photoCtr == photoIdx:

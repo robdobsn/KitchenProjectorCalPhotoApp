@@ -8,10 +8,16 @@ from PyQt5.QtGui import (QColor, QPalette)
 import sys
 import atexit
 import time
+import logging
+import os
 
 from MainWindow import MainWindow
 from ProjectorControl import ProjectorControl
 from ProgramInstanceHandler import ProgramInstanceHandler
+
+LOGGING_FORMAT = '%(asctime)-15s %(message)s'
+logging.basicConfig(level=os.environ.get("LOGLEVEL", "DEBUG"), format=LOGGING_FORMAT)
+log = logging.getLogger(__name__)
 
 def setupApplication():
     app = QApplication(sys.argv)

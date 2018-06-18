@@ -5,10 +5,13 @@ import datetime
 import threading
 import win32api
 import win32con
+import logging
+
+log = logging.getLogger(__name__)
 
 class ProjectorControl:
     _projectorIsOn = True
-    _eventTimes = [ ("07:00","on"), ("09:00", "off"), ("15:00","on"), ("20:00", "off") ]
+    _eventTimes = [ ("07:00","on"), ("09:00", "off"), ("15:00","on"), ("22:00", "off") ]
     _nextEvent = None
     _stopRequested = False
     _serialConnection = None
@@ -30,21 +33,21 @@ class ProjectorControl:
             if self._serialConnection is not None:
                 self._serialRxThread = threading.Thread(target=self.serialHandler, args=(self._serialConnection,))
                 self._serialRxThread.start()
-                print("ProjectorControl - started serial monitoring")
+                log.info("ProjectorControl - started serial monitoring")
             else:
                 self._serialRxThread = None
-                print("ProjectorControl - failed to connect to", self._comPort)
+                log.error("ProjectorControl - failed to connect to", self._comPort)
         except:
-            print("ProjectorControl - failed to connect to", self._comPort)
+            log.error("ProjectorControl - failed to connect to", self._comPort)
             if self._serialConnection is not None:
                 self._serialConnection.close()
             self._serialConnection = None
             self._serialRxThread = None
-        print("ProjectorControl - started")
+        log.info("ProjectorControl - started")
 
     def stop(self):
         self._stopRequested = True
-        print("ProjectorControl - stop requested")
+        log.info("ProjectorControl - stop requested")
 
     def serialHandler(self, serialConn):
         # print("ProjectorControl - serialHandler start", serialConn)
@@ -57,13 +60,13 @@ class ProjectorControl:
                     print("{:02X} ".format(newCh), end="")
                     if newCh == 0x03:
                         print()
-            time.sleep(100)
+            time.sleep(0.1)
         try:
             serialConn.close()
-            print("ProjectorControl - Closed serial connection")
+            log.info("ProjectorControl - Closed serial connection")
         except:
-            print("ProjectorControl - Failed to close serial connection")
-        print("ProjectorControl - serial monitor stopped")
+            log.error("ProjectorControl - Failed to close serial connection")
+        log.info("ProjectorControl - serial monitor stopped")
 
     def prepareNextEventTime(self):
         curTime = datetime.datetime.now()
@@ -76,7 +79,7 @@ class ProjectorControl:
             break
         if self._nextEvent is None:
             self._nextEvent = self._eventTimes[0]
-        print("ProjectorControl - Next event at " + self._nextEvent[0] + " projector " +  self._nextEvent[1])
+        log.info("ProjectorControl - Next event at " + self._nextEvent[0] + " projector " +  self._nextEvent[1])
 
     def powerTimingHandler(self):
         while True:
@@ -84,38 +87,41 @@ class ProjectorControl:
                 break
             # Check for next event time
             curTime = datetime.datetime.now()
-            print("Checking time at", curTime)
+            log.info("Checking time")
             nextEventTime = datetime.datetime.strptime(self._nextEvent[0], "%H:%M")
             nextEventAction = self._nextEvent[1]
             if curTime.hour == nextEventTime.hour and curTime.minute == nextEventTime.minute:
                 if nextEventAction == "on":
-                    print("Turning projector on")
+                    log.info("Turning projector on")
                     self.switchPower(True)
                 elif nextEventAction == "off":
                     self._turnOffPendingInactivity = True
-                    print("ProjectorControl - turn off when inactive")
+                    log.info("ProjectorControl - turn off when inactive")
                 self.prepareNextEventTime()
             # Check for turn-off based on inactivity
             if self._turnOffPendingInactivity:
                 inactiveSecs = self.getInactiveForSecs()
-                print("Wait for inactive", inactiveSecs)
+                log.info("Wait for inactive", inactiveSecs)
                 if inactiveSecs > self.MIN_INACTIVE_SECS:
                     self.switchPower(False)
                     self._turnOffPendingInactivity = False
-                    print("ProjectorControl - inactive for", inactiveSecs, "turning off")
+                    log.info("ProjectorControl - inactive for", inactiveSecs, "turning off")
             # Wait a bit
-            time.sleep(30.0)
-        print("PowerControl: powerTimingThread exiting")
+            for i in range(30):
+                if self._stopRequested:
+                    break
+                time.sleep(1.0)
+        log.info("PowerControl: powerTimingThread exiting")
 
     def switchPower(self, turnOn):
         if self._projectorModel is "PanasonicVZ570":
             # Send to panasonic projector
             if turnOn:
-                print("ProjectorControl - Turning projector on")
+                log.info("ProjectorControl - Turning projector on")
                 self._serialConnection.write(b'\2PON\3')
                 self.monitorOn()
             else:
-                print("ProjectorControl - Turning projector off")
+                log.info("ProjectorControl - Turning projector off")
                 self._serialConnection.write(b'\2POF\3')
 
     def monitorOn(self):
@@ -126,7 +132,7 @@ class ProjectorControl:
     def test(self):
         if self._projectorModel is "PanasonicVZ570":
             # Send to panasonic projector
-            print("ProjectorControl - Checking power")
+            log.info("ProjectorControl - Checking power")
             self._serialConnection.write(b'\2QPW\3')
 
     def getInactiveForSecs(self):
