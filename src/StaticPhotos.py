@@ -105,9 +105,9 @@ class StaticPhotos(QGraphicsView):
         # Add caption
         caption = QGraphicsTextItem()
         caption.setDefaultTextColor(QColor(255,255,255))
-        caption.setPos(self.width() * 1/8, self.height()*0.92)
+        caption.setPos(0, self.height()*0.94)
         caption.setFont(QFont("Segoe UI", 30))
-        caption.setTextWidth(self.width()*3/4)
+        caption.setTextWidth(self.width())
         # caption.setPos(100, 100)
         # caption.setTextWidth(1500)
         # if newImgInfo.createDate is not None:
@@ -139,7 +139,7 @@ class StaticPhotos(QGraphicsView):
                 captionStr += newImgInfo.mainDate.strftime("%d %b %Y")
         except Exception as excp:
             print("StaticPhotos: Cannot set caption")
-        captionStr = '<div style="background-color:#000000">' + captionStr + "</div>"
+        captionStr = '<div style="background-color:#000000;text-align: right;padding-right:10dp;">' + captionStr + "</div>"
         print(captionStr)
         caption.setHtml(captionStr)
         self.scene.addItem(caption)
