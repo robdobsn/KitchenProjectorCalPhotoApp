@@ -161,3 +161,9 @@ class AnimatedCalendar(QTextEdit):
         self.updateTimer.setSingleShot(True)
         self.updateTimer.timeout.connect(self.updateCalendar)
         self.updateTimer.start()
+
+    def keyPressEvent(self, event): #QKeyEvent
+        key = event.key()
+        if key != QtCore.Qt.Key_Down or key != QtCore.Qt.Key_Up:
+            event.ignore()
+        # print("keypressAnimCalendar", event.text(), event.key())

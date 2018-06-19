@@ -9,11 +9,16 @@ from AnimatedCalendar import AnimatedCalendar
 from StaticPhotos import StaticPhotos
 from CaptionedPhotos import CaptionedPhotos
 from WindowToolbar import WindowToolbar
+from PhotoDeltas import PhotoDeltas
 
 class MainWindow(QWidget):
     def __init__(self, appConfig, projectorControl, parent=None):
+
+        self.PHOTO_DELTAS_FILE_NAME = "//MACALLAN/Photos/Photo Info/Deltas/PhotoDeltas.txt"
         QWidget.__init__(self, parent)
         self._projectorControl = projectorControl
+        # File used for delta changes to photos
+        self.photoDeltas = PhotoDeltas(self.PHOTO_DELTAS_FILE_NAME)
         # Frameless window
         self.setWindowFlags(Qt.FramelessWindowHint)
         # Background to black
@@ -27,7 +32,7 @@ class MainWindow(QWidget):
         self.calendar = AnimatedCalendar(calUpdateSecs=600, calServerUrl=appConfig["calServerUrl"])
         # Image
         # self.photos = AnimatedPhotos("//macallan/photos/PhotosMain/", ["jpg"], maxCols=3, maxRows=4, borders=[0,0,0,0], xBetweenPics=5, yBetweenPics=5, animationSpeed=1.0, picChangeMs=5000)
-        self.photos = StaticPhotos("//macallan/photos/PhotosMain/", ["jpg"], picChangeMs=5000)
+        self.photos = StaticPhotos("//macallan/photos/PhotosMain/", ["jpg"], self.photoDeltas, picChangeMs=5000)
         #self.photos = CaptionedPhotos("//macallan/photos/PhotosMain/", ["jpg"], picChangeMs=5000)
 
         # Toolbar
@@ -120,5 +125,36 @@ class MainWindow(QWidget):
         self._projectorControl.test()
 
     def keyPressEvent(self, event): #QKeyEvent
-        print("keypress", event.text())
+        key = event.key()
+        if key == QtCore.Qt.Key_Left:
+            # print('Left')
+            self.photos.movePrev()
+        elif key == QtCore.Qt.Key_Right:
+            # print('Right')
+            self.photos.moveNext()
+        elif key == QtCore.Qt.Key_0:
+            self.photoDeltas.setRating(self.photos, 0)
+            self.photos.reshow()
+        elif key == QtCore.Qt.Key_1:
+            self.photoDeltas.setRating(self.photos, 1)
+            self.photos.reshow()
+        elif key == QtCore.Qt.Key_2:
+            self.photoDeltas.setRating(self.photos, 2)
+            self.photos.reshow()
+        elif key == QtCore.Qt.Key_3:
+            self.photoDeltas.setRating(self.photos, 3)
+            self.photos.reshow()
+        elif key == QtCore.Qt.Key_4:
+            self.photoDeltas.setRating(self.photos, 4)
+            self.photos.reshow()
+        elif key == QtCore.Qt.Key_5:
+            self.photoDeltas.setRating(self.photos, 5)
+            self.photos.reshow()
+        elif key == QtCore.Qt.Key_D:
+            self.photoDeltas.setDateError()
+            self.photos.reshow()
+        elif key == QtCore.Qt.Key_L:
+            self.photoDeltas.setLocationError()
+            self.photos.reshow()
+        # print("keypressMainWindow", event.text())
 

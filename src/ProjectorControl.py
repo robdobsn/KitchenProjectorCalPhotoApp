@@ -28,21 +28,32 @@ class ProjectorControl:
         self._projectorPowerTiming = threading.Thread(target=self.powerTimingHandler)
         self._projectorPowerTiming.start()
         # Serial connection
+        serialOpenOk = False
         try:
             self._serialConnection = serial.Serial(self._comPort)
-            if self._serialConnection is not None:
-                self._serialRxThread = threading.Thread(target=self.serialHandler, args=(self._serialConnection,))
-                self._serialRxThread.start()
-                log.info("ProjectorControl - started serial monitoring")
-            else:
-                self._serialRxThread = None
-                log.error("ProjectorControl - failed to connect to", self._comPort)
-        except:
-            log.error("ProjectorControl - failed to connect to", self._comPort)
-            if self._serialConnection is not None:
-                self._serialConnection.close()
-            self._serialConnection = None
-            self._serialRxThread = None
+            serialOpenOk = True
+        except serial.serialutil.SerialException as excp:
+            log.error("ProjectorControl - failed to connect to %s (%s)", self._comPort, excp)
+        try:
+            if serialOpenOk:
+                if self._serialConnection is not None:
+                    serialOpenOk = True
+                    self._serialRxThread = threading.Thread(target=self.serialHandler, args=(self._serialConnection,))
+                    self._serialRxThread.start()
+                    log.info("ProjectorControl - started serial monitoring")
+                else:
+                    self._serialRxThread = None
+                    log.error("ProjectorControl - failed to connect to %s", self._comPort)
+        except Exception as excp:
+            log.error("ProjectorControl - failed to connect to %s (%s)", self._comPort, excp)
+            if serialOpenOk:
+                try:
+                    if self._serialConnection is not None:
+                        self._serialConnection.close()
+                    self._serialConnection = None
+                    self._serialRxThread = None
+                except Exception as excp:
+                    log.error("Failed to close serial port %s", excp)
         log.info("ProjectorControl - started")
 
     def stop(self):
@@ -87,7 +98,7 @@ class ProjectorControl:
                 break
             # Check for next event time
             curTime = datetime.datetime.now()
-            log.info("Checking time")
+            # log.info("Checking time")
             nextEventTime = datetime.datetime.strptime(self._nextEvent[0], "%H:%M")
             nextEventAction = self._nextEvent[1]
             if curTime.hour == nextEventTime.hour and curTime.minute == nextEventTime.minute:

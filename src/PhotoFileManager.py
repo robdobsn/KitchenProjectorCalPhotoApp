@@ -4,6 +4,7 @@ import threading
 import time
 import random
 from PhotoInfo import PhotoInfo
+from collections import deque
 
 class PhotoFilelistUpdateThread(threading.Thread):
     theParent = None
@@ -11,7 +12,7 @@ class PhotoFilelistUpdateThread(threading.Thread):
     validFileExtList = []
     rootPath = ""
     listUpdatePeriodSecs = 3600
-    
+
     def __init__(self, parent, validFileExtList, rootPath, listUpdatePeriodSecs):
         threading.Thread.__init__(self)
         self.theParent = parent
@@ -61,14 +62,17 @@ class PhotoFileManager():
     curPhotoFilename = ""
     validFileExtList = []
     rootPath = ""
-    cachedPhotoInfo = None
     listUpdateThread = None
     listUpdateLock = threading.Lock()
-    
-    def __init__(self, validFileExtList, rootPath, listUpdateInterval):
+    previousPhotoNames = deque()
+    MAX_BACK_STEPS_ALLOWED = 100
+    curPhotoOffset = 0
+
+    def __init__(self, validFileExtList, rootPath, listUpdateInterval, photoDeltas):
         self.listUpdateInterval = listUpdateInterval
         self.validFileExtList = validFileExtList
         self.rootPath = rootPath
+        self.photoDeltas = photoDeltas
         
     def startPhotoListUpdate(self):
         self.listUpdateThread = PhotoFilelistUpdateThread(self, self.validFileExtList, self.rootPath, self.listUpdateInterval)
@@ -102,15 +106,18 @@ class PhotoFileManager():
 
     def getCurPhotoInfo(self):
         curFileName = self.getCurPhotoFilename()
-        if self.cachedPhotoInfo != None:
-            if self.cachedPhotoInfo[0] == curFileName:
-                return self.cachedPhotoInfo[1]
         newPhotoInfo = PhotoInfo()
         newPhotoInfo.setFromFile(curFileName)
-        self.cachedPhotoInfo = (curFileName, newPhotoInfo)
+        self.photoDeltas.applyDeltasToPhotoInfo(curFileName, newPhotoInfo)
         return newPhotoInfo
-        
+
     def moveNext(self):
+        # Check if we're moving back to latest
+        if self.curPhotoOffset > 0:
+            self.curPhotoOffset -= 1
+            self.curPhotoFilename = self.previousPhotoNames[len(self.previousPhotoNames) - 1 - self.curPhotoOffset]
+            print("ReMoved to " + self.curPhotoFilename)
+            return
         with self.listUpdateLock:
             if self.totalPhotoCount > 0:
                 photoIdx = random.randrange(0,self.totalPhotoCount-1)
@@ -119,7 +126,7 @@ class PhotoFileManager():
                     if photoIdx < photoCtr + photoFolder[1]:
     #                    print (photoIdx, photoCtr, photoFolder[1])
                         try:
-                        fileList = os.listdir(photoFolder[0])
+                            fileList = os.listdir(photoFolder[0])
                         except:
                             print("Failed to access folder " + photoFolder[0])
                             break
@@ -127,22 +134,18 @@ class PhotoFileManager():
                             if fname[-3:].lower() in self.validFileExtList:
                                 if photoCtr == photoIdx:
                                     self.curPhotoFilename = join(photoFolder[0], fname)
+                                    while len(self.previousPhotoNames) > self.MAX_BACK_STEPS_ALLOWED:
+                                        self.previousPhotoNames.popleft()
+                                    self.previousPhotoNames.append(self.curPhotoFilename)
+                                    print("Moved to " + self.curPhotoFilename)
                                 photoCtr += 1
                         break
                     photoCtr += photoFolder[1]
 
-### Test code   
-##ph = PhotoFileManager(["jpg"], 'P:/PhotosMain/2012/')
-##ph.startPhotoListUpdate()
-##maxTime = 60
-##while maxTime > 0 and ph.getNumPhotos() <= 0:
-##    time.sleep(1)
-##    print (".", end="")
-##    maxTime -= 1
-##if ph.getNumPhotos() > 0:
-##    print()
-##    for i in range(20):
-##        ph.moveNext()
-##        print (ph.getCurPhotoFilename())
-##else:
-##    print ("No Photos")
+    def movePrev(self):
+        if self.curPhotoOffset >= len(self.previousPhotoNames)-1:
+            return
+        self.curPhotoOffset += 1
+        self.curPhotoFilename = self.previousPhotoNames[len(self.previousPhotoNames)-1-self.curPhotoOffset]
+        print("Moved back to " + self.curPhotoFilename)
+

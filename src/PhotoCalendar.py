@@ -17,6 +17,7 @@ from ProgramInstanceHandler import ProgramInstanceHandler
 
 LOGGING_FORMAT = '%(asctime)-15s %(message)s'
 logging.basicConfig(level=os.environ.get("LOGLEVEL", "DEBUG"), format=LOGGING_FORMAT)
+logging.getLogger('exifread').setLevel(logging.INFO)
 log = logging.getLogger(__name__)
 
 def setupApplication():

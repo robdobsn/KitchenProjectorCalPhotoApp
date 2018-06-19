@@ -83,3 +83,6 @@ class WindowToolbar(QWidget):
             self.minMaxButton.show()
             # if self._parent is not None:
             #     self._parent.setWindowFlags(Qt.FramelessWindowHint)
+
+    def keyPressEvent(self, event): #QKeyEvent
+        event.ignore()

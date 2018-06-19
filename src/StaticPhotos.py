@@ -6,9 +6,10 @@ from PyQt5.QtWidgets import (QWidget, QApplication, QGraphicsScene, QGraphicsVie
 import datetime
 from PhotoFileManager import PhotoFileManager
 from PhotoInfo import PhotoInfo
+import json
 
 class StaticPhotos(QGraphicsView):
-    def __init__(self, photoBaseDir, validPhotoFileExts, picChangeMs, parent=None):
+    def __init__(self, photoBaseDir, validPhotoFileExts, photoDeltas, picChangeMs, parent=None):
         QGraphicsView.__init__(self, parent)
         self.setAlignment(Qt.AlignLeft | Qt.AlignTop)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff) 
@@ -24,8 +25,9 @@ class StaticPhotos(QGraphicsView):
         self.setFrameShape(QtWidgets.QFrame.NoFrame)
         # Class vars
         self.picChgTimer = None
-        self.photoFileManager = PhotoFileManager(validPhotoFileExts, self.photoBaseDir, 7200.00)
+        self.photoFileManager = PhotoFileManager(validPhotoFileExts, self.photoBaseDir, 7200.00, photoDeltas)
         self.photoFileManager.startPhotoListUpdate()
+        self.userMovedBack = False
 
     # def sizeHint(self):
     #     return QSize(600, 400)
@@ -51,9 +53,26 @@ class StaticPhotos(QGraphicsView):
             # self.picChgTimer.disconnect(self.picChangeFn)
         self.photoFileManager.stop()
 
+    def moveNext(self):
+        self.nextPicItem()
+
+    def movePrev(self):
+        self.prevPicItem()
+        self.userMovedBack = True
+
+    def reshow(self):
+        self.showImage()
+
+    def getCurPhotoFilename(self):
+        return self.photoFileManager.getCurPhotoFilename()
+
     def picChangeFn(self):
         # pass
-        self.getNextPicItem()
+        if self.userMovedBack:
+            # Skip this update
+            self.userMovedBack = False
+        else:
+            self.nextPicItem()
         self.picChgTimer.setInterval(self.picChangeMs)
         self.picChgTimer.start()
 
@@ -72,35 +91,74 @@ class StaticPhotos(QGraphicsView):
         # print("XY Size", xFactor, yFactor, xReqdSize,yReqdSize)
         return self.inter2Img, self.newImgInfo
 
-
-    def getNextPicItem(self):
-        if self.photoFileManager.getNumPhotos() == 0:
-            return None
+    def showImage(self):
         (newImg, newImgInfo) = self.loadImage()
-        # print ("Loaded photo", self.sourcePhotoList[self.curPhotoIdx], " w", finalImg.width(), " h", finalImg.height(), " facs", xFactor, yFactor)
-        self.photoFileManager.moveNext()
         # return PicItem(Pixmap(QPixmap(newImg)), -1, -1, xFactor, yFactor, newImgInfo)
         self.scene.clear()
         imgSz = newImgInfo.imgSize
+        self.setSceneRect(QRectF(0,0,imgSz.width(), imgSz.height()))
         pixMap = QPixmap.fromImage(newImg)
-        # pixMap.setWidth(self.width())
+        # # pixMap.setWidth(self.width())
         pixMapItem = self.scene.addPixmap(pixMap)
-        pixMapItem.setPos(50,50)
+        # pixMapItem.setPos(50,50)
         # self.fitInView(QRectF(0, 0, self.width(), self.height()), Qt.KeepAspectRatio)
         # Add caption
         caption = QGraphicsTextItem()
         caption.setDefaultTextColor(QColor(255,255,255))
-        caption.setPos(0, self.height()-50);
-        caption.setTextWidth(self.width());
-        # print("Tags",newImgInfo.tags)
-        tagStr = ""
-        for tag in newImgInfo.tags:
-            if tag != "Duplicate":
-                tagStr += (", " if len(tagStr) != 0 else "") + tag
-        captionStr = '<h1 style="text-align:center;width:100%">' + tagStr + '</h1>'
+        caption.setPos(self.width() * 1/8, self.height()*0.92)
+        caption.setFont(QFont("Segoe UI", 30))
+        caption.setTextWidth(self.width()*3/4)
+        # caption.setPos(100, 100)
+        # caption.setTextWidth(1500)
+        # if newImgInfo.createDate is not None:
+        #     caption.setPlainText(newImgInfo.createDate.format());
+        # else:
+        #     caption.setPlainText("Image is called bananas");
+        # print("Tags", newImgInfo.tags)
+        # tagStr = ""
+        # for tag in newImgInfo.tags:
+        #     if tag != "Duplicate":
+        #         tagStr += (", " if len(tagStr) != 0 else "") + tag
+        # if tagStr == "":
+        #     tagStr = "NO TAGS"
+        # captionStr = '<h1 style="text-align:center;width:100%">' + tagStr + '</h1>'
         # if newImgInfo.createDate is not None:
         #     print(newImgInfo.createDate.format())
         #     captionStr += '<BR><h2>' + newImgInfo.createDate.format() + '</h2>'
+
+        captionStr = ""
+        try:
+            if newImgInfo.rating is not None:
+                for i in range(newImgInfo.rating):
+                    captionStr += "&#x2605;"
+                for i in range(5-newImgInfo.rating):
+                    captionStr += "&#x2606;"
+            if newImgInfo.mainDate is not None:
+                if len(captionStr) != 0:
+                    captionStr += "  "
+                captionStr += newImgInfo.mainDate.strftime("%d %b %Y")
+        except Exception as excp:
+            print("StaticPhotos: Cannot set caption")
+        captionStr = '<div style="background-color:#000000">' + captionStr + "</div>"
+        print(captionStr)
         caption.setHtml(captionStr)
         self.scene.addItem(caption)
         self.scene.update()
+
+    def prevPicItem(self):
+        if self.photoFileManager.getNumPhotos() == 0:
+            return None
+        self.photoFileManager.movePrev()
+        # print ("Loaded photo", self.sourcePhotoList[self.curPhotoIdx], " w", finalImg.width(), " h", finalImg.height(), " facs", xFactor, yFactor)
+        self.showImage()
+
+    def nextPicItem(self):
+        if self.photoFileManager.getNumPhotos() == 0:
+            return None
+        # print ("Loaded photo", self.sourcePhotoList[self.curPhotoIdx], " w", finalImg.width(), " h", finalImg.height(), " facs", xFactor, yFactor)
+        self.photoFileManager.moveNext()
+        self.showImage()
+
+    def keyPressEvent(self, event): #QKeyEvent
+        event.ignore()
+        # print("keypressStaticPhotos", event.text(), event.key())

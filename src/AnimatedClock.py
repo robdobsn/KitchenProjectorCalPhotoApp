@@ -59,3 +59,6 @@ class AnimatedClock(QGraphicsView):
     def heightForWidth(self, width):
         return width * .32
 
+    def keyPressEvent(self, event): #QKeyEvent
+        event.ignore()
+        # print("keypressAnimClock", event.text(), event.key())
